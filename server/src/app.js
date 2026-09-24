@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import mongoose from "mongoose";
 
 const app = express();
 
@@ -9,9 +10,14 @@ app.use(cors({ origin: process.env.CLIENT_URL }));
 // Read JSON request bodies (e.g. order data)
 app.use(express.json());
 
-// Health check – confirms the server is running
+// Health check – confirms the server and database are running
 app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", message: "Cloud Nine API is running" });
+  const dbConnected = mongoose.connection.readyState === 1;
+  res.json({
+    status: "ok",
+    message: "Cloud Nine API is running",
+    database: dbConnected ? "connected" : "disconnected",
+  });
 });
 
 // 404 for unknown API routes
@@ -24,5 +30,7 @@ app.use((err, req, res, next) => {
   console.error(err);
   res.status(err.status || 500).json({ message: err.message || "Server error" });
 });
+
+
 
 export default app;
