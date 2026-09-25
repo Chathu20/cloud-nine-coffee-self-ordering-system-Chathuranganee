@@ -20,3 +20,6 @@ export const NEXT_STATUS = {
 export const PAYMENT_STATUS = ["UNPAID", "PAID"];
 
 export const ROLES = ["BARISTA", "ADMIN"];
+
+// Tip options shown at checkout (percent of subtotal); 0 = no tip
+export const TIP_PERCENTAGES = [0, 5, 10, 15];

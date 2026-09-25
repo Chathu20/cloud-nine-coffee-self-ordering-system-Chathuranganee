@@ -112,6 +112,10 @@ export const buildOrderItems = async (items) => {
     };
   });
 
-  const totalAmount = orderItems.reduce((sum, line) => sum + line.lineTotal, 0);
-  return { orderItems, totalAmount };
+    const subtotal = orderItems.reduce((sum, line) => sum + line.lineTotal, 0);
+  return { orderItems, subtotal };
 };
+
+// Tip in whole rupees, e.g. 10% of 2750 = 275
+export const calculateTip = (subtotal, tipPercent) =>
+  Math.round((subtotal * tipPercent) / 100);

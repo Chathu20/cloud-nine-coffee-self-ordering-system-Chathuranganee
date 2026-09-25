@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { ORDER_TYPES, ORDER_STATUS, PAYMENT_STATUS } from "../constants.js";
+import { ORDER_TYPES, ORDER_STATUS, PAYMENT_STATUS, TIP_PERCENTAGES } from "../constants.js";
 
 // Snapshot of one chosen option at the time of purchase
 const orderOptionSchema = new mongoose.Schema(
@@ -43,7 +43,13 @@ const orderSchema = new mongoose.Schema(
         message: "An order must contain at least one item",
       },
     },
-    totalAmount: { type: Number, required: true, min: 0 },
+
+    // Money (whole rupees)
+    subtotal: { type: Number, required: true, min: 0 },          // items only
+    tipPercent: { type: Number, enum: TIP_PERCENTAGES, default: 0 },
+    tipAmount: { type: Number, default: 0, min: 0 },
+    totalAmount: { type: Number, required: true, min: 0 },       // subtotal + tip
+
     status: {
       type: String,
       enum: Object.values(ORDER_STATUS),
