@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
 import menuRoutes from "./routes/menuRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
 
 const app = express();
 
@@ -23,6 +24,7 @@ app.get("/api/health", (req, res) => {
 
 // API routes
 app.use("/api/menu", menuRoutes);
+app.use("/api/auth", authRoutes);
 
 // 404 for unknown API routes
 app.use((req, res) => {
