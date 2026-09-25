@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { ORDER_TYPES, ORDER_STATUS, PAYMENT_STATUS, TIP_PERCENTAGES } from "../constants.js";
+import crypto from "node:crypto";
 
 // Snapshot of one chosen option at the time of purchase
 const orderOptionSchema = new mongoose.Schema(
@@ -35,6 +36,12 @@ const statusHistorySchema = new mongoose.Schema(
 const orderSchema = new mongoose.Schema(
   {
     orderNumber: { type: String, unique: true, sparse: true },
+        trackingToken: {
+      type: String,
+      unique: true,
+      sparse: true,
+      default: () => crypto.randomUUID(),
+    },
     orderType: { type: String, required: true, enum: ORDER_TYPES },
     items: {
       type: [orderItemSchema],
