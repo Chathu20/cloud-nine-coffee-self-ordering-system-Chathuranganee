@@ -3,6 +3,7 @@ import cors from "cors";
 import mongoose from "mongoose";
 import menuRoutes from "./routes/menuRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
+import staffRoutes from "./routes/staffRoutes.js";
 
 const app = express();
 
@@ -25,7 +26,7 @@ app.get("/api/health", (req, res) => {
 // API routes
 app.use("/api/menu", menuRoutes);
 app.use("/api/auth", authRoutes);
-
+app.use("/api/staff", staffRoutes);
 // 404 for unknown API routes
 app.use((req, res) => {
   res.status(404).json({ message: `Route not found: ${req.originalUrl}` });
