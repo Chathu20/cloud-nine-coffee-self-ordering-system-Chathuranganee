@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { CATEGORIES } from "../constants.js";
+import "./OptionGroup.js"; // registers the OptionGroup model, needed for populate("optionGroups")
 
 const productSchema = new mongoose.Schema(
   {

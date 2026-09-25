@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
+import menuRoutes from "./routes/menuRoutes.js";
 
 const app = express();
 
@@ -19,6 +20,9 @@ app.get("/api/health", (req, res) => {
     database: dbConnected ? "connected" : "disconnected",
   });
 });
+
+// API routes
+app.use("/api/menu", menuRoutes);
 
 // 404 for unknown API routes
 app.use((req, res) => {
