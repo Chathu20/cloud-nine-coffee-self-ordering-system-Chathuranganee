@@ -3,6 +3,7 @@ import CustomerLayout from "./layouts/CustomerLayout";
 import WelcomePage from "./pages/customer/WelcomePage";
 import MenuPage from "./pages/customer/MenuPage";
 import CartPage from "./pages/customer/CartPage";
+import CheckoutPage from "./pages/customer/CheckoutPage";
 import Placeholder from "./components/Placeholder";
 
 export default function App() {
@@ -14,7 +15,7 @@ export default function App() {
           <Route path="/" element={<WelcomePage />} />
           <Route path="/menu" element={<MenuPage />} />
           <Route path="/cart" element={<CartPage />} />
-          <Route path="/checkout" element={<Placeholder title="Checkout" />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/order/success" element={<Placeholder title="Order Confirmed" />} />
         </Route>
 
