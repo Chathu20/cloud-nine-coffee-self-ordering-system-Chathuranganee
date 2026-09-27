@@ -4,6 +4,7 @@ import WelcomePage from "./pages/customer/WelcomePage";
 import MenuPage from "./pages/customer/MenuPage";
 import CartPage from "./pages/customer/CartPage";
 import CheckoutPage from "./pages/customer/CheckoutPage";
+import OrderSuccessPage from "./pages/customer/OrderSuccessPage";
 import Placeholder from "./components/Placeholder";
 
 export default function App() {
@@ -16,7 +17,7 @@ export default function App() {
           <Route path="/menu" element={<MenuPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
-          <Route path="/order/success" element={<Placeholder title="Order Confirmed" />} />
+          <Route path="/order/success" element={<OrderSuccessPage />} />
         </Route>
 
         {/* Customer's phone (from the QR code) */}
