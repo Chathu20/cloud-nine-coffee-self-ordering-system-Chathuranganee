@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+/* Cloud Nine Coffee Bar – colour theme (defined once, used everywhere) */
+@theme {
+  --color-espresso: #2b1d14;     /* main text */
+  --color-coffee: #5b3a29;       /* brand brown – headings */
+  --color-latte: #c8a27c;        /* soft tan accents, borders */
+  --color-cream: #f5ede3;        /* page background */
+  --color-forest: #074a21;       /* dark green – main action buttons */
+  --color-forest-dark: #05361a;  /* button hover */
+
+  --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  @apply bg-cream text-espresso antialiased;
+}
