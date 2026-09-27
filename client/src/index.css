@@ -1,5 +1,59 @@
 @import "tailwindcss";
 
+/* ---------- Welcome screen animations ---------- */
+
+/* Coffee rises inside the cup */
+@keyframes coffee-fill {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(12%); }
+}
+.coffee-fill {
+  transform-box: fill-box;
+  animation: coffee-fill 1.8s ease-out forwards;
+}
+
+/* Steam drifts up and fades, forever */
+@keyframes steam-rise {
+  0%   { opacity: 0; transform: translateY(8px); }
+  30%  { opacity: 0.8; }
+  100% { opacity: 0; transform: translateY(-16px); }
+}
+.steam {
+  opacity: 0;
+  animation: steam-rise 2.8s ease-in-out infinite;
+}
+
+/* Text slides up into view */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: none; }
+}
+.fade-up {
+  opacity: 0;
+  animation: fade-up 0.8s ease-out forwards;
+}
+
+/* The start button gently "breathes" */
+@keyframes soft-pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.05); }
+}
+.soft-pulse {
+  animation: soft-pulse 2s ease-in-out infinite;
+}
+
+/* Respect users who turn animations off in their device settings */
+@media (prefers-reduced-motion: reduce) {
+  .coffee-fill,
+  .steam,
+  .fade-up,
+  .soft-pulse {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
 /* Cloud Nine Coffee Bar – colour theme (defined once, used everywhere) */
 @theme {
   --color-espresso: #2b1d14;     /* main text */
