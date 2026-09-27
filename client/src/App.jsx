@@ -5,6 +5,7 @@ import MenuPage from "./pages/customer/MenuPage";
 import CartPage from "./pages/customer/CartPage";
 import CheckoutPage from "./pages/customer/CheckoutPage";
 import OrderSuccessPage from "./pages/customer/OrderSuccessPage";
+import TrackOrderPage from "./pages/customer/TrackOrderPage";
 import Placeholder from "./components/Placeholder";
 
 export default function App() {
@@ -21,7 +22,7 @@ export default function App() {
         </Route>
 
         {/* Customer's phone (from the QR code) */}
-        <Route path="/track/:token" element={<Placeholder title="Track Your Order" />} />
+        <Route path="/track/:token" element={<TrackOrderPage />} />
 
         {/* Staff */}
         <Route path="/staff/login" element={<Placeholder title="Staff Login" />} />
