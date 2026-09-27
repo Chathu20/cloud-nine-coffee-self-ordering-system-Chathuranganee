@@ -1,14 +1,14 @@
 import Order from "../models/Order.js";
 import Counter from "../models/Counter.js";
 import stripe, { STRIPE_CURRENCY } from "../config/stripe.js";
-import { ORDER_TYPES, ORDER_STATUS, TIP_PERCENTAGES } from "../constants.js";
+import { ORDER_TYPES, ORDER_STATUS, TIP_PERCENTAGES, TAKEAWAY_CHARGE } from "../constants.js";
 import { buildOrderItems, calculateTip } from "../services/pricing.js";
 import AppError from "../utils/AppError.js";
 
 // Stripe expects the smallest currency unit: LKR 850 → 85000 (cents)
 const toStripeAmount = (rupees) => Math.round(rupees * 100);
 
-// One Stripe line per cart line, plus the tip as its own line
+// One Stripe line per cart line, plus the takeaway charge and the tip as their own lines
 const buildLineItems = (order) => {
   const lines = order.items.map((item) => ({
     quantity: item.quantity,
@@ -23,6 +23,17 @@ const buildLineItems = (order) => {
       },
     },
   }));
+
+  if (order.takeawayCharge > 0) {
+    lines.push({
+      quantity: 1,
+      price_data: {
+        currency: STRIPE_CURRENCY,
+        unit_amount: toStripeAmount(order.takeawayCharge),
+        product_data: { name: "Takeaway packaging charge" },
+      },
+    });
+  }
 
   if (order.tipAmount > 0) {
     lines.push({
@@ -52,6 +63,7 @@ export const toCustomerOrder = (order) => ({
   subtotal: order.subtotal,
   tipPercent: order.tipPercent,
   tipAmount: order.tipAmount,
+  takeawayCharge: order.takeawayCharge ?? 0,
   totalAmount: order.totalAmount,
   status: order.status,
   paidAt: order.paidAt,
@@ -70,8 +82,9 @@ export const createOrder = async (req, res) => {
   }
 
   const { orderItems, subtotal } = await buildOrderItems(items);
-  const tipAmount = calculateTip(subtotal, tipPercent);
-  const totalAmount = subtotal + tipAmount;
+  const tipAmount = calculateTip(subtotal, tipPercent); // tip is on the items only
+  const takeawayCharge = orderType === "TAKEAWAY" ? TAKEAWAY_CHARGE : 0;
+  const totalAmount = subtotal + takeawayCharge + tipAmount;
 
   const order = await Order.create({
     orderType,
@@ -79,6 +92,7 @@ export const createOrder = async (req, res) => {
     subtotal,
     tipPercent,
     tipAmount,
+    takeawayCharge,
     totalAmount,
     status: ORDER_STATUS.PENDING_PAYMENT,
     statusHistory: [{ status: ORDER_STATUS.PENDING_PAYMENT }],
