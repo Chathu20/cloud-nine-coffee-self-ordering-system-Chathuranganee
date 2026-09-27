@@ -1,35 +1,125 @@
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import CoffeeCup from "../../components/CoffeeCup";
 import { useMenu } from "../../context/MenuContext";
+
+// Video files live in client/public/videos/
+const INTRO_VIDEO = "/videos/welcome-intro.mp4"; // beans fall into the cup (plays once)
+const LOOP_VIDEO = "/videos/welcome-loop.mp4"; // the cup steaming (repeats forever)
+const POSTER = "/videos/welcome-poster.jpg"; // still picture: shown while loading / for reduced motion
+
+const TITLE_LINES = ["Cloud Nine", "Coffee Bar"];
+const LETTER_DELAY_MS = 55; // time between each title letter appearing
+const INTRO_FALLBACK_MS = 6000; // show the text anyway if the video can't play
+
+const prefersReducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 
 export default function WelcomePage() {
   const navigate = useNavigate();
   const { loading, error } = useMenu();
+  const [reducedMotion] = useState(prefersReducedMotion);
+  const [introDone, setIntroDone] = useState(reducedMotion); // reduced motion → skip straight to the text
+  const loopRef = useRef(null);
+
+  // Intro finished (or failed) → start the steaming loop and reveal the text
+  const finishIntro = useCallback(() => {
+    setIntroDone(true);
+    loopRef.current?.play().catch(() => {}); // if autoplay is blocked, the poster still shows
+  }, []);
+
+  // Safety net: never leave the customer staring at a blank screen
+  useEffect(() => {
+    if (introDone) return;
+    const timer = setTimeout(finishIntro, INTRO_FALLBACK_MS);
+    return () => clearTimeout(timer);
+  }, [introDone, finishIntro]);
+
+  // Title letters appear one after another, then the tagline, then "Tap to start"
+  const letterCount = TITLE_LINES.join("").length;
+  const taglineDelay = letterCount * LETTER_DELAY_MS + 400;
 
   return (
     <button
       type="button"
       onClick={() => navigate("/menu")}
       aria-label="Tap to start your order"
-      className="flex min-h-screen w-full flex-col items-center justify-center gap-6 bg-cream p-8 text-center"
+      className="relative flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-espresso text-center"
     >
-      <CoffeeCup className="h-56 w-56 md:h-72 md:w-72" />
+      {/* ---------- Background video (decoration only) ---------- */}
+      <div className="absolute inset-0" aria-hidden="true">
+        {reducedMotion ? (
+          <img src={POSTER} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <>
+            {/* Loop sits underneath and takes over when the intro ends */}
+            <video
+              ref={loopRef}
+              src={LOOP_VIDEO}
+              poster={POSTER}
+              muted
+              loop
+              playsInline
+              preload="auto"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            <video
+              src={INTRO_VIDEO}
+              autoPlay
+              muted
+              playsInline
+              preload="auto"
+              onEnded={finishIntro}
+              onError={finishIntro}
+              className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${
+                introDone ? "opacity-0" : "opacity-100"
+              }`}
+            />
+          </>
+        )}
 
-      <h1 className="fade-up text-4xl font-bold text-coffee md:text-6xl" style={{ animationDelay: "1.2s" }}>
-        Cloud Nine Coffee Bar
-      </h1>
+        {/* Darkens the picture so the light text is easy to read */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/25 to-black/65" />
+      </div>
 
-      <p className="fade-up text-lg text-espresso/80 md:text-2xl" style={{ animationDelay: "1.6s" }}>
-        Freshly brewed, just the way you like it
-      </p>
+      {/* ---------- Text ---------- */}
+      <div className="relative z-10 flex flex-col items-center gap-5 px-6">
+        <h1 className="font-display text-6xl leading-[0.95] text-cream drop-shadow-lg sm:text-7xl md:text-8xl lg:text-9xl">
+          {TITLE_LINES.map((line, lineIndex) => {
+            const offset = TITLE_LINES.slice(0, lineIndex).join("").length;
+            return (
+              <span key={line} className="block whitespace-nowrap">
+                {[...line].map((char, i) => (
+                  <span
+                    key={i}
+                    className={`inline-block ${introDone ? "letter-in" : "opacity-0"}`}
+                    style={{ animationDelay: `${(offset + i) * LETTER_DELAY_MS}ms` }}
+                  >
+                    {char === " " ? "\u00A0" : char}
+                  </span>
+                ))}
+              </span>
+            );
+          })}
+        </h1>
 
-      <span className="fade-up mt-4" style={{ animationDelay: "2s" }}>
-        <span className="soft-pulse inline-block rounded-full bg-forest px-10 py-5 text-xl font-semibold text-white shadow-lg md:text-2xl">
-          Tap anywhere to start
+        <p
+          className={`text-base text-cream/90 drop-shadow md:text-2xl ${introDone ? "fade-up" : "opacity-0"}`}
+          style={{ animationDelay: `${taglineDelay}ms` }}
+        >
+          Freshly brewed, just the way you like it
+        </p>
+
+        <span
+          className={`mt-6 ${introDone ? "fade-up" : "opacity-0"}`}
+          style={{ animationDelay: `${taglineDelay + 600}ms` }}
+        >
+          <span className="soft-pulse inline-block rounded-full border border-cream/40 bg-black/25 px-10 py-4 font-display text-2xl text-cream backdrop-blur-sm md:text-4xl">
+            Tap anywhere to start
+          </span>
         </span>
-      </span>
+      </div>
 
-      <p className="h-6 text-sm text-espresso/60">
+      {/* Menu status (bottom of the screen) */}
+      <p className="absolute inset-x-0 bottom-6 z-10 h-6 text-sm text-cream/70">
         {error ? "Having trouble reaching the menu – please ask a staff member" : loading ? "Brewing the menu…" : ""}
       </p>
     </button>
