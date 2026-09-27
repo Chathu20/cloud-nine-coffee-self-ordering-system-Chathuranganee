@@ -5,6 +5,7 @@ import menuRoutes from "./routes/menuRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import staffRoutes from "./routes/staffRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 
 const app = express();
 
@@ -24,11 +25,12 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-/// API routes
+// API routes
 app.use("/api/menu", menuRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/staff", staffRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/admin", adminRoutes);
 // 404 for unknown API routes
 app.use((req, res) => {
   res.status(404).json({ message: `Route not found: ${req.originalUrl}` });
