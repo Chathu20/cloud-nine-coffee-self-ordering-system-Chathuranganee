@@ -2,14 +2,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMenu } from "../../context/MenuContext";
 
-// Video files live in client/public/videos/
+// Files live in client/public/videos/
 const INTRO_VIDEO = "/videos/welcome-intro.mp4"; // beans fall into the cup (plays once)
-const LOOP_VIDEO = "/videos/welcome-loop.mp4"; // the cup steaming (repeats forever)
-const POSTER = "/videos/welcome-poster.jpg"; // still picture: shown while loading / for reduced motion
+const STEAM_VIDEO = "/videos/welcome-steam.mp4"; // still cup – only the real steam moves (repeats forever)
+const POSTER = "/videos/welcome-poster.jpg"; // still picture: used while loading / if video can't play / reduced motion
 
 const TITLE_LINES = ["Cloud Nine", "Coffee Bar"];
 const LETTER_DELAY_MS = 55; // time between each title letter appearing
-const INTRO_FALLBACK_MS = 6000; // show the text anyway if the video can't play
+const INTRO_FALLBACK_MS = 6000; // show the text anyway if the video never finishes
 
 const prefersReducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 
@@ -18,15 +18,21 @@ export default function WelcomePage() {
   const { loading, error } = useMenu();
   const [reducedMotion] = useState(prefersReducedMotion);
   const [introDone, setIntroDone] = useState(reducedMotion); // reduced motion → skip straight to the text
-  const loopRef = useRef(null);
+  const [videoFailed, setVideoFailed] = useState(false);
+  const steamRef = useRef(null);
 
-  // Intro finished (or failed) → start the steaming loop and reveal the text
+  // Intro finished → switch to the steam loop (it starts on the exact frame the intro ends on)
   const finishIntro = useCallback(() => {
     setIntroDone(true);
-    loopRef.current?.play().catch(() => {}); // if autoplay is blocked, the poster still shows
+    steamRef.current?.play().catch(() => {}); // if autoplay is blocked, the still picture stays
   }, []);
 
-  // Safety net: never leave the customer staring at a blank screen
+  const handleVideoError = useCallback(() => {
+    setVideoFailed(true); // show the still picture instead
+    setIntroDone(true);
+  }, []);
+
+  // Safety net: never leave the customer waiting if the video is slow or blocked
   useEffect(() => {
     if (introDone) return;
     const timer = setTimeout(finishIntro, INTRO_FALLBACK_MS);
@@ -36,6 +42,7 @@ export default function WelcomePage() {
   // Title letters appear one after another, then the tagline, then "Tap to start"
   const letterCount = TITLE_LINES.join("").length;
   const taglineDelay = letterCount * LETTER_DELAY_MS + 400;
+  const showStill = reducedMotion || videoFailed;
 
   return (
     <button
@@ -44,21 +51,22 @@ export default function WelcomePage() {
       aria-label="Tap to start your order"
       className="relative flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-espresso text-center"
     >
-      {/* ---------- Background video (decoration only) ---------- */}
+      {/* ---------- Background (decoration only) ---------- */}
       <div className="absolute inset-0" aria-hidden="true">
-        {reducedMotion ? (
+        {showStill ? (
           <img src={POSTER} alt="" className="h-full w-full object-cover" />
         ) : (
           <>
-            {/* Loop sits underneath and takes over when the intro ends */}
+            {/* Steam loop waits underneath and takes over when the intro ends */}
             <video
-              ref={loopRef}
-              src={LOOP_VIDEO}
+              ref={steamRef}
+              src={STEAM_VIDEO}
               poster={POSTER}
               muted
               loop
               playsInline
               preload="auto"
+              onError={handleVideoError}
               className="absolute inset-0 h-full w-full object-cover"
             />
             <video
@@ -68,10 +76,8 @@ export default function WelcomePage() {
               playsInline
               preload="auto"
               onEnded={finishIntro}
-              onError={finishIntro}
-              className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${
-                introDone ? "opacity-0" : "opacity-100"
-              }`}
+              onError={handleVideoError}
+              className={`absolute inset-0 h-full w-full object-cover ${introDone ? "invisible" : ""}`}
             />
           </>
         )}
