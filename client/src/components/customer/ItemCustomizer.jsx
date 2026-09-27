@@ -18,6 +18,20 @@ const resolveOption = (group, value) => {
   return group.defaultOptionId ? availableOption(group.defaultOptionId) : null;
 };
 
+// Small takeaway-cup icon; the Size group shows bigger cups for bigger sizes
+function CupIcon({ height }) {
+  return (
+    <svg viewBox="0 0 24 32" height={height} width={(height * 24) / 32} aria-hidden="true" focusable="false">
+      <rect x="3" y="3" width="18" height="4.5" rx="1.5" fill="currentColor" />
+      <path d="M4.5 9h15l-2 19.5a2 2 0 0 1-2 1.8h-7a2 2 0 0 1-2-1.8z" fill="currentColor" />
+      <path d="M5.8 15h12.4l-.6 6H6.4z" fill="#c9a45c" />
+    </svg>
+  );
+}
+
+const priceText = (option) =>
+  !option.isAvailable ? "Sold out" : option.priceDelta > 0 ? `+${formatLKR(option.priceDelta)}` : "";
+
 export default function ItemCustomizer({ product, onClose, onAdded }) {
   const { addItem } = useCart();
   const [selections, setSelections] = useState({});
@@ -66,138 +80,170 @@ export default function ItemCustomizer({ product, onClose, onAdded }) {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-40 flex items-end justify-center bg-espresso/50 md:items-center md:p-6"
-      onClick={onClose}
-    >
-      <div
+    <>
+      {/* Dimmed background – small screens only (on wide screens the panel sits under the menu) */}
+      <div className="fixed inset-0 z-30 bg-espresso/50 lg:hidden" onClick={onClose} aria-hidden="true" />
+
+      <section
         role="dialog"
-        aria-modal="true"
         aria-labelledby="customizer-title"
-        onClick={(event) => event.stopPropagation()}
-        className="flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl bg-cream shadow-2xl md:rounded-3xl"
+        className="fixed inset-x-0 bottom-0 z-40 max-h-[88vh] overflow-y-auto rounded-t-3xl border-t-2 border-gold/60 bg-cream shadow-2xl lg:relative lg:inset-auto lg:z-10 lg:mx-6 lg:mb-6 lg:max-h-[50vh] lg:shrink-0 lg:rounded-3xl lg:border-2 lg:shadow-lg"
       >
-        {/* Scrollable content */}
-        <div className="overflow-y-auto">
-          <div className="relative">
-            <ProductImage
-              src={product.image}
-              alt={product.name}
-              category={product.category}
-              className="h-56 w-full md:h-64"
-            />
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close"
-              className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-2xl text-espresso shadow"
-            >
-              ×
-            </button>
+        {/* Title row */}
+        <div className="flex items-center gap-4 border-b border-latte/40 px-5 py-3">
+          <ProductImage
+            src={product.image}
+            alt=""
+            category={product.category}
+            className="h-12 w-12 shrink-0 rounded-xl object-cover text-3xl"
+          />
+          <div className="min-w-0 flex-1">
+            <h2 id="customizer-title" className="font-display text-2xl uppercase tracking-wide text-coffee">
+              {product.name}
+            </h2>
+            <p className="line-clamp-1 text-sm text-espresso/70">{product.description}</p>
           </div>
-
-          <div className="space-y-6 p-6">
-            <div>
-              <h2 id="customizer-title" className="text-2xl font-bold text-coffee md:text-3xl">
-                {product.name}
-              </h2>
-              <p className="mt-1 text-espresso/70">{product.description}</p>
-              <p className="mt-2 text-lg font-semibold text-forest">{formatLKR(product.basePrice)}</p>
-            </div>
-
-            {!product.isOrderable && (
-              <p role="alert" className="rounded-2xl bg-red-50 p-4 font-medium text-red-800">
-                Sorry, {product.name} has just become unavailable.
-              </p>
-            )}
-
-            {chosen.map(({ group, option: selected }) => (
-              <fieldset key={group._id} className="space-y-3">
-                <legend className="flex w-full items-center justify-between">
-                  <span className="text-lg font-semibold text-espresso">{group.name}</span>
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                      group.required ? "bg-coffee text-cream" : "bg-latte/30 text-coffee"
-                    }`}
-                  >
-                    {group.required ? "Required" : "Optional"}
-                  </span>
-                </legend>
-
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  {group.options.map((option) => {
-                    const isSelected = selected?._id === option._id;
-                    return (
-                      <button
-                        key={option._id}
-                        type="button"
-                        disabled={!option.isAvailable}
-                        aria-pressed={isSelected}
-                        onClick={() => choose(group, option)}
-                        className={`flex min-h-16 flex-col items-start justify-center rounded-2xl border-2 px-4 py-3 text-left transition disabled:cursor-not-allowed disabled:border-latte/30 disabled:bg-white/50 disabled:text-espresso/40 ${
-                          isSelected ? "border-forest bg-forest/10" : "border-latte/50 bg-white hover:border-forest/50"
-                        }`}
-                      >
-                        <span className={`font-semibold ${option.isAvailable ? "" : "line-through"}`}>
-                          {isSelected && "✓ "}
-                          {option.name}
-                        </span>
-                        <span className="text-sm">
-                          {!option.isAvailable
-                            ? "Unavailable"
-                            : option.priceDelta > 0
-                              ? `+${formatLKR(option.priceDelta)}`
-                              : "No extra charge"}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </fieldset>
-            ))}
-          </div>
-        </div>
-
-        {/* Fixed footer: quantity + add button */}
-        <div className="flex items-center gap-4 border-t border-latte/40 bg-white p-4 md:p-6">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-              disabled={quantity <= 1}
-              aria-label="Decrease quantity"
-              className="h-12 w-12 rounded-full border-2 border-latte text-2xl font-bold text-coffee disabled:opacity-30"
-            >
-              −
-            </button>
-            <span className="w-8 text-center text-xl font-bold" aria-live="polite">
-              {quantity}
-            </span>
-            <button
-              type="button"
-              onClick={() => setQuantity((q) => Math.min(MAX_QUANTITY, q + 1))}
-              disabled={quantity >= MAX_QUANTITY}
-              aria-label="Increase quantity"
-              className="h-12 w-12 rounded-full border-2 border-latte text-2xl font-bold text-coffee disabled:opacity-30"
-            >
-              +
-            </button>
-          </div>
-
           <button
             type="button"
-            onClick={handleAdd}
-            disabled={!canAdd}
-            className="flex-1 rounded-2xl bg-forest px-6 py-4 text-lg font-semibold text-white transition hover:bg-forest-dark disabled:cursor-not-allowed disabled:opacity-40"
+            onClick={onClose}
+            aria-label="Close"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-latte text-2xl text-espresso hover:bg-latte/20"
           >
-            {canAdd
-              ? `Add to cart · ${formatLKR(unitPrice * quantity)}`
-              : missingRequired
-                ? `Choose a ${missingRequired.group.name}`
-                : "Unavailable"}
+            ×
           </button>
         </div>
-      </div>
-    </div>
+
+        {!product.isOrderable && (
+          <p role="alert" className="mx-5 mt-4 rounded-2xl bg-red-50 p-4 font-medium text-red-800">
+            Sorry, {product.name} has just become unavailable.
+          </p>
+        )}
+
+        <div className="flex flex-col gap-4 p-4 xl:flex-row">
+          {/* Option groups – one column each, like the kiosk design */}
+          {chosen.length > 0 ? (
+            <div className="grid flex-1 grid-cols-[repeat(auto-fit,minmax(8.5rem,1fr))] gap-3">
+              {chosen.map(({ group, option: selected }) => {
+                const isSize = group.name.toLowerCase() === "size";
+                return (
+                  <div
+                    key={group._id}
+                    role="group"
+                    aria-labelledby={`group-${group._id}`}
+                    className="rounded-2xl bg-white/80 p-3 ring-1 ring-latte/40"
+                  >
+                    <p id={`group-${group._id}`} className="text-center font-display text-lg uppercase tracking-wider text-espresso">
+                      {group.name}
+                    </p>
+                    <p className="mb-3 text-center text-[11px] uppercase tracking-wider text-espresso/50">
+                      {group.required ? "Required" : "Optional"}
+                    </p>
+
+                    {isSize ? (
+                      // Size: cup icons that grow with the size
+                      <div className="flex items-end justify-center gap-2">
+                        {group.options.map((option, index) => {
+                          const isSelected = selected?._id === option._id;
+                          return (
+                            <button
+                              key={option._id}
+                              type="button"
+                              disabled={!option.isAvailable}
+                              aria-pressed={isSelected}
+                              onClick={() => choose(group, option)}
+                              className={`flex min-w-0 flex-1 flex-col items-center gap-1 rounded-2xl px-1 py-2 transition disabled:cursor-not-allowed disabled:opacity-35 ${
+                                isSelected ? "bg-gold/25 text-coffee ring-2 ring-gold" : "text-coffee/80 hover:bg-latte/20"
+                              }`}
+                            >
+                              <CupIcon height={30 + index * 10} />
+                              <span className={`text-sm font-semibold ${option.isAvailable ? "" : "line-through"}`}>
+                                {option.name}
+                              </span>
+                              <span className="text-xs text-espresso/60">{priceText(option) || " "}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      // Other groups: pill buttons (gold = selected)
+                      <div className="flex flex-col gap-2">
+                        {group.options.map((option) => {
+                          const isSelected = selected?._id === option._id;
+                          return (
+                            <button
+                              key={option._id}
+                              type="button"
+                              disabled={!option.isAvailable}
+                              aria-pressed={isSelected}
+                              onClick={() => choose(group, option)}
+                              className={`flex min-h-11 flex-col items-start justify-center rounded-2xl px-3.5 py-2 text-left text-sm font-medium transition disabled:cursor-not-allowed disabled:bg-espresso/10 disabled:text-espresso/40 ${
+                                isSelected
+                                  ? "bg-gold text-espresso ring-2 ring-gold"
+                                  : "bg-forest text-white hover:bg-forest-dark"
+                              }`}
+                            >
+                              <span className={option.isAvailable ? "" : "line-through"}>
+                                {isSelected && "✓ "}
+                                {option.name}
+                              </span>
+                              {priceText(option) && <span className="text-xs opacity-80">{priceText(option)}</span>}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="flex-1 self-center text-espresso/70">No options for this item – just choose how many you'd like.</p>
+          )}
+
+          {/* Quantity + add (sticks to the bottom of the sheet on small screens) */}
+          <div className="sticky bottom-0 flex flex-col gap-3 rounded-2xl bg-espresso p-4 text-cream xl:static xl:w-56 xl:shrink-0 xl:self-start">
+            <p className="text-center text-xs uppercase tracking-widest text-cream/60">Quantity</p>
+            <div className="flex items-center justify-center gap-4">
+              <button
+                type="button"
+                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                disabled={quantity <= 1}
+                aria-label="Decrease quantity"
+                className="h-11 w-11 rounded-full border border-gold/60 text-2xl font-bold text-gold-light disabled:opacity-30"
+              >
+                −
+              </button>
+              <span className="w-8 text-center text-2xl font-bold" aria-live="polite">
+                {quantity}
+              </span>
+              <button
+                type="button"
+                onClick={() => setQuantity((q) => Math.min(MAX_QUANTITY, q + 1))}
+                disabled={quantity >= MAX_QUANTITY}
+                aria-label="Increase quantity"
+                className="h-11 w-11 rounded-full border border-gold/60 text-2xl font-bold text-gold-light disabled:opacity-30"
+              >
+                +
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={handleAdd}
+              disabled={!canAdd}
+              className="rounded-full bg-gold px-5 py-3.5 font-semibold text-espresso transition hover:bg-gold-light disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {canAdd ? (
+                <>
+                  Add to order
+                  <span className="block text-sm font-bold">{formatLKR(unitPrice * quantity)}</span>
+                </>
+              ) : missingRequired
+                  ? `Choose a ${missingRequired.group.name}`
+                  : "Unavailable"}
+            </button>
+          </div>
+        </div>
+      </section>
+    </>
   );
 }

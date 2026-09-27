@@ -2,25 +2,14 @@
 
 /* ---------- Welcome screen animations ---------- */
 
-/* Coffee rises inside the cup */
-@keyframes coffee-fill {
-  from { transform: translateY(100%); }
-  to   { transform: translateY(12%); }
+/* Each title letter drifts in from a blur, with the gaps closing up */
+@keyframes letter-in {
+  from { opacity: 0; filter: blur(8px); margin-inline: 0.12em; }
+  to   { opacity: 1; filter: blur(0); margin-inline: 0; }
 }
-.coffee-fill {
-  transform-box: fill-box;
-  animation: coffee-fill 1.8s ease-out forwards;
-}
-
-/* Steam drifts up and fades, forever */
-@keyframes steam-rise {
-  0%   { opacity: 0; transform: translateY(8px); }
-  30%  { opacity: 0.8; }
-  100% { opacity: 0; transform: translateY(-16px); }
-}
-.steam {
+.letter-in {
   opacity: 0;
-  animation: steam-rise 2.8s ease-in-out infinite;
+  animation: letter-in 0.9s ease-out forwards;
 }
 
 /* Text slides up into view */
@@ -44,13 +33,13 @@
 
 /* Respect users who turn animations off in their device settings */
 @media (prefers-reduced-motion: reduce) {
-  .coffee-fill,
-  .steam,
+  .letter-in,
   .fade-up,
   .soft-pulse {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;
+    filter: none !important;
   }
 }
 
@@ -62,8 +51,11 @@
   --color-cream: #f5ede3;        /* page background */
   --color-forest: #074a21;       /* dark green – main action buttons */
   --color-forest-dark: #05361a;  /* button hover */
+  --color-gold: #c9a45c;         /* premium accent – borders, selected options */
+  --color-gold-light: #e6cf9a;   /* gold text on dark backgrounds */
 
   --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Marcellus", Georgia, serif; /* elegant headings (font-display) */
 }
 
 body {
