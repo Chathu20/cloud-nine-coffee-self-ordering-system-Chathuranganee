@@ -5,14 +5,20 @@ import {
   setProductAvailability,
   setOptionAvailability,
 } from "../controllers/availabilityController.js";
+import { getOrders, advanceOrderStatus } from "../controllers/staffOrderController.js";
 
 const router = Router();
 
 // Every route in this file requires a logged-in barista or admin
 router.use(protect, authorize("BARISTA", "ADMIN"));
 
+// Menu availability
 router.get("/availability", getAvailability);
 router.patch("/products/:id/availability", setProductAvailability);
 router.patch("/option-groups/:groupId/options/:optionId/availability", setOptionAvailability);
+
+// Order board
+router.get("/orders", getOrders);
+router.patch("/orders/:id/status", advanceOrderStatus);
 
 export default router;
