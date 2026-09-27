@@ -145,3 +145,38 @@ export const confirmPayment = async (req, res) => {
   res.set("Cache-Control", "no-store");
   res.json({ order: toCustomerOrder(order) });
 };
+
+// A tracking token is a UUID v4, e.g. 251a69a1-aa0b-43d1-9914-ce04cf466238
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+// Safe, price-free view of an order for the public tracking page
+const toTrackingView = (order) => ({
+  orderNumber: order.orderNumber,
+  orderType: order.orderType,
+  items: order.items.map(({ name, quantity, options }) => ({
+    name,
+    quantity,
+    options: options.map(({ group, name }) => ({ group, name })),
+  })),
+  status: order.status,
+  timeline: order.statusHistory
+    .filter((entry) => entry.status !== ORDER_STATUS.PENDING_PAYMENT)
+    .map(({ status, at }) => ({ status, at })),
+  paidAt: order.paidAt,
+});
+
+// GET /api/orders/track/:token – public order status for the QR tracking page
+export const trackOrder = async (req, res) => {
+  const { token } = req.params;
+  if (!UUID_PATTERN.test(token)) {
+    throw new AppError("Invalid tracking link");
+  }
+
+  const order = await Order.findOne({ trackingToken: token, paymentStatus: "PAID" }).lean();
+  if (!order) {
+    throw new AppError("Order not found", 404);
+  }
+
+  res.set("Cache-Control", "no-store");
+  res.json({ order: toTrackingView(order) });
+};
