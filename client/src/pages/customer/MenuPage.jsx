@@ -1,17 +1,21 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMenu } from "../../context/MenuContext";
 import { useCart } from "../../context/CartContext";
 import CustomerHeader from "../../components/customer/CustomerHeader";
 import CategoryTabs from "../../components/customer/CategoryTabs";
 import ProductCard from "../../components/customer/ProductCard";
+import ItemCustomizer from "../../components/customer/ItemCustomizer";
 import { formatLKR } from "../../utils/format";
+
+const TOAST_MS = 2500;
 
 export default function MenuPage() {
   const { categories, loading, error, refresh } = useMenu();
   const { itemCount, subtotal } = useCart();
   const [activeCategory, setActiveCategory] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
+  const [toast, setToast] = useState("");
 
   // Default to the first category until the customer picks one
   const current = categories.find((c) => c.name === activeCategory) ?? categories[0];
@@ -20,6 +24,15 @@ export default function MenuPage() {
   // so availability changes (every 5 s) are reflected immediately
   const selectedProduct =
     categories.flatMap((c) => c.products).find((p) => p._id === selectedId) ?? null;
+
+  const closeCustomizer = useCallback(() => setSelectedId(null), []);
+
+  // Hide the "added" message after a moment
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(""), TOAST_MS);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   return (
     <div className="min-h-screen pb-28">
@@ -75,20 +88,23 @@ export default function MenuPage() {
         </div>
       )}
 
-      {/* TEMPORARY – replaced by the customization panel in Step 18 */}
+      {/* Customization panel */}
       {selectedProduct && (
-        <div className="fixed inset-x-4 top-1/3 z-30 mx-auto max-w-sm space-y-3 rounded-3xl bg-white p-6 text-center shadow-2xl">
-          <p className="text-lg">
-            Selected: <strong>{selectedProduct.name}</strong>
-          </p>
-          <p className="text-sm text-espresso/60">The customization panel comes in Step 18.</p>
-          <button
-            type="button"
-            onClick={() => setSelectedId(null)}
-            className="rounded-xl border border-latte px-4 py-2"
-          >
-            Close
-          </button>
+        <ItemCustomizer
+          key={selectedProduct._id}
+          product={selectedProduct}
+          onClose={closeCustomizer}
+          onAdded={setToast}
+        />
+      )}
+
+      {/* "Added to your order" message */}
+      {toast && (
+        <div
+          role="status"
+          className="fixed left-1/2 top-24 z-50 -translate-x-1/2 rounded-full bg-espresso px-6 py-3 font-medium text-cream shadow-lg"
+        >
+          ✓ {toast}
         </div>
       )}
     </div>
