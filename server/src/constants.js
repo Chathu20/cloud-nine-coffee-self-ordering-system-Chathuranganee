@@ -23,6 +23,3 @@ export const ROLES = ["BARISTA", "ADMIN"];
 
 // Tip options shown at checkout (percent of subtotal); 0 = no tip
 export const TIP_PERCENTAGES = [0, 5, 10, 15];
-
-// Flat packaging charge added to every TAKEAWAY order (whole rupees). Change it here only.
-export const TAKEAWAY_CHARGE = 100;

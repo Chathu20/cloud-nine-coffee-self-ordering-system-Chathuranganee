@@ -6,7 +6,6 @@ const REFRESH_MS = 5000; // availability changes appear within 5 seconds (NFR-04
 
 export function MenuProvider({ children }) {
   const [categories, setCategories] = useState([]);
-  const [takeawayCharge, setTakeawayCharge] = useState(0); // set by the server, shown at checkout
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -14,7 +13,6 @@ export function MenuProvider({ children }) {
     try {
       const { data } = await api.get("/menu");
       setCategories(data.categories);
-      setTakeawayCharge(data.takeawayCharge ?? 0);
       setError("");
     } catch {
       setError("Could not load the menu");
@@ -34,7 +32,7 @@ export function MenuProvider({ children }) {
   }, [refresh]);
 
   return (
-    <MenuContext.Provider value={{ categories, takeawayCharge, loading, error, refresh }}>
+    <MenuContext.Provider value={{ categories, loading, error, refresh }}>
       {children}
     </MenuContext.Provider>
   );

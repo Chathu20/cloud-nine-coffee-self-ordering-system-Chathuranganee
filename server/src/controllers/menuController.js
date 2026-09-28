@@ -1,5 +1,5 @@
 import Product from "../models/Product.js";
-import { CATEGORIES, TAKEAWAY_CHARGE } from "../constants.js";
+import { CATEGORIES } from "../constants.js";
 import { isProductOrderable, getDefaultOptionId } from "../services/pricing.js";
 
 // GET /api/menu – full menu grouped by category, with availability
@@ -26,5 +26,5 @@ export const getMenu = async (req, res) => {
 
   // Always send fresh data – the customer screen polls this for availability changes
   res.set("Cache-Control", "no-store");
-  res.json({ categories, takeawayCharge: TAKEAWAY_CHARGE });
+  res.json({ categories });
 };

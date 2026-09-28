@@ -19,7 +19,7 @@ const calculateTip = (subtotal, percent) => Math.round((subtotal * percent) / 10
 
 export default function CheckoutPage() {
   const { items } = useCart();
-  const { categories, takeawayCharge, refresh } = useMenu();
+  const { categories, refresh } = useMenu();
 
   const [orderType, setOrderType] = useState("");
   const [tipPercent, setTipPercent] = useState(0);
@@ -59,9 +59,8 @@ export default function CheckoutPage() {
 
   const problemCount = lines.filter((line) => line.check && !line.check.ok).length;
   const subtotal = lines.reduce((sum, line) => sum + line.lineTotal, 0);
-  const tipAmount = calculateTip(subtotal, tipPercent); // tip is on the items only
-  const takeawayAmount = orderType === "TAKEAWAY" ? takeawayCharge : 0;
-  const total = subtotal + takeawayAmount + tipAmount;
+  const tipAmount = calculateTip(subtotal, tipPercent);
+  const total = subtotal + tipAmount;
   const canPay = menuReady && problemCount === 0 && orderType !== "" && !submitting;
 
   // Nothing to pay for → back to the cart
@@ -149,9 +148,7 @@ export default function CheckoutPage() {
                   </span>
                   <span className="text-lg font-semibold">{choice.label}</span>
                   <span className={`text-sm ${selected ? "text-white/80" : "text-espresso/60"}`}>
-                    {choice.value === "TAKEAWAY" && takeawayCharge > 0
-                      ? `+${formatLKR(takeawayCharge)} packaging`
-                      : choice.hint}
+                    {choice.hint}
                   </span>
                 </button>
               );
@@ -219,12 +216,6 @@ export default function CheckoutPage() {
               <dt>Subtotal</dt>
               <dd>{formatLKR(subtotal)}</dd>
             </div>
-            {takeawayAmount > 0 && (
-              <div className="flex justify-between text-espresso/80">
-                <dt>Takeaway packaging</dt>
-                <dd>{formatLKR(takeawayAmount)}</dd>
-              </div>
-            )}
             <div className="flex justify-between text-espresso/80">
               <dt>Tip{tipPercent > 0 ? ` (${tipPercent}%)` : ""}</dt>
               <dd>{formatLKR(tipAmount)}</dd>

@@ -36,7 +36,7 @@ const statusHistorySchema = new mongoose.Schema(
 const orderSchema = new mongoose.Schema(
   {
     orderNumber: { type: String, unique: true, sparse: true },
-    trackingToken: {
+        trackingToken: {
       type: String,
       unique: true,
       sparse: true,
@@ -55,8 +55,7 @@ const orderSchema = new mongoose.Schema(
     subtotal: { type: Number, required: true, min: 0 },          // items only
     tipPercent: { type: Number, enum: TIP_PERCENTAGES, default: 0 },
     tipAmount: { type: Number, default: 0, min: 0 },
-    takeawayCharge: { type: Number, default: 0, min: 0 },        // packaging, takeaway only
-    totalAmount: { type: Number, required: true, min: 0 },       // subtotal + takeaway charge + tip
+    totalAmount: { type: Number, required: true, min: 0 },       // subtotal + tip
 
     status: {
       type: String,

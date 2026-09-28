@@ -153,12 +153,6 @@ export default function OrderSuccessPage() {
                 <dt>Subtotal</dt>
                 <dd>{formatLKR(order.subtotal)}</dd>
               </div>
-              {order.takeawayCharge > 0 && (
-                <div className="flex justify-between">
-                  <dt>Takeaway packaging</dt>
-                  <dd>{formatLKR(order.takeawayCharge)}</dd>
-                </div>
-              )}
               <div className="flex justify-between">
                 <dt>Tip{order.tipPercent > 0 ? ` (${order.tipPercent}%)` : ""}</dt>
                 <dd>{formatLKR(order.tipAmount)}</dd>
