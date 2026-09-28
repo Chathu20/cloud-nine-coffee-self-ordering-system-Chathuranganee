@@ -10,6 +10,7 @@ import CheckoutPage from "./pages/customer/CheckoutPage";
 import OrderSuccessPage from "./pages/customer/OrderSuccessPage";
 import TrackOrderPage from "./pages/customer/TrackOrderPage";
 import StaffLoginPage from "./pages/staff/StaffLoginPage";
+import BaristaBoardPage from "./pages/staff/BaristaBoardPage";
 import Placeholder from "./components/Placeholder";
 
 // Login state is only needed on staff pages, so the kiosk never checks for a staff token
@@ -49,7 +50,7 @@ export default function App() {
               </RequireRole>
             }
           >
-            <Route path="/barista" element={<Placeholder title="Barista Board" />} />
+            <Route path="/barista" element={<BaristaBoardPage />} />
           </Route>
 
           {/* Admins only */}
