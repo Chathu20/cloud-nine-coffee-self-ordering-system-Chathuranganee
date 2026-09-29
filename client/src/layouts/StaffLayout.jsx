@@ -1,9 +1,10 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import LiveClock from "../components/LiveClock";
 
 const ROLE_LABEL = { BARISTA: "Barista", ADMIN: "Admin" };
 
-// Top bar shared by every staff page: who is logged in, page links, log out
+// Top bar shared by every staff page: page links, live clock, who is logged in, log out
 export default function StaffLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -22,24 +23,31 @@ export default function StaffLayout() {
     <div className="min-h-screen bg-cream">
       <header className="border-b-2 border-gold/60 bg-espresso text-cream shadow-md">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 md:px-8">
-          <div className="flex items-center gap-6">
+          <div className="flex flex-wrap items-center gap-6">
             <p className="font-display text-xl uppercase tracking-[0.12em] text-gold-light">
               Cloud Nine <span className="text-cream/60">· Staff</span>
             </p>
-            <nav aria-label="Staff pages" className="flex gap-2">
+            <nav aria-label="Staff pages" className="flex flex-wrap gap-2">
               <NavLink to="/barista" className={linkClass}>
                 Barista board
               </NavLink>
               {user.role === "ADMIN" && (
-                <NavLink to="/admin" className={linkClass}>
-                  Admin dashboard
-                </NavLink>
+                <>
+                  {/* "end" = only highlight Dashboard on exactly /admin, not on /admin/menu */}
+                  <NavLink to="/admin" end className={linkClass}>
+                    Dashboard
+                  </NavLink>
+                  <NavLink to="/admin/menu" className={linkClass}>
+                    Menu
+                  </NavLink>
+                </>
               )}
             </nav>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="text-right text-sm leading-tight">
+          <div className="flex items-center gap-4 md:gap-6">
+            <LiveClock />
+            <div className="border-l border-cream/20 pl-4 text-right text-sm leading-tight">
               <p className="font-semibold">{user.name}</p>
               <p className="text-cream/60">{ROLE_LABEL[user.role] ?? user.role}</p>
             </div>

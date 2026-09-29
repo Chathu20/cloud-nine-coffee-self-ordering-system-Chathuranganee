@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
+import LiveClock from "../LiveClock";
 import { formatLKR } from "../../utils/format";
 
 // hideCartOnWide: the menu page shows the order in a side panel on wide screens,
@@ -17,17 +18,22 @@ export default function CustomerHeader({ hideCartOnWide = false }) {
           <p className="text-xs text-cream/60 md:text-sm">Order here · Pay by card</p>
         </div>
 
-        <Link
-          to="/cart"
-          aria-label={`View cart, ${itemCount} item${itemCount === 1 ? "" : "s"}`}
-          className={`flex shrink-0 items-center gap-2 rounded-full border border-gold/60 bg-forest px-5 py-3 font-semibold text-white transition hover:bg-forest-dark ${
-            hideCartOnWide ? "lg:hidden" : ""
-          }`}
-        >
-          <span aria-hidden="true">🛒</span>
-          <span>{itemCount}</span>
-          <span className="hidden sm:inline">· {formatLKR(subtotal)}</span>
-        </Link>
+        <div className="flex shrink-0 items-center gap-4 md:gap-6">
+          {/* Current time and date – always visible on every kiosk page with this header */}
+          <LiveClock />
+
+          <Link
+            to="/cart"
+            aria-label={`View cart, ${itemCount} item${itemCount === 1 ? "" : "s"}`}
+            className={`flex shrink-0 items-center gap-2 rounded-full border border-gold/60 bg-forest px-5 py-3 font-semibold text-white transition hover:bg-forest-dark ${
+              hideCartOnWide ? "lg:hidden" : ""
+            }`}
+          >
+            <span aria-hidden="true">🛒</span>
+            <span>{itemCount}</span>
+            <span className="hidden sm:inline">· {formatLKR(subtotal)}</span>
+          </Link>
+        </div>
       </div>
     </header>
   );
