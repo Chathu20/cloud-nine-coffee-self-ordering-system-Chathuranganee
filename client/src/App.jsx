@@ -11,6 +11,8 @@ import OrderSuccessPage from "./pages/customer/OrderSuccessPage";
 import TrackOrderPage from "./pages/customer/TrackOrderPage";
 import StaffLoginPage from "./pages/staff/StaffLoginPage";
 import BaristaBoardPage from "./pages/staff/BaristaBoardPage";
+import AdminDashboardPage from "./pages/staff/AdminDashboardPage";
+import AdminMenuPage from "./pages/staff/AdminMenuPage";
 import Placeholder from "./components/Placeholder";
 
 // Login state is only needed on staff pages, so the kiosk never checks for a staff token
@@ -61,7 +63,8 @@ export default function App() {
               </RequireRole>
             }
           >
-            <Route path="/admin" element={<Placeholder title="Admin Dashboard" />} />
+            <Route path="/admin" element={<AdminDashboardPage />} />
+            <Route path="/admin/menu" element={<AdminMenuPage />} />
           </Route>
         </Route>
 
