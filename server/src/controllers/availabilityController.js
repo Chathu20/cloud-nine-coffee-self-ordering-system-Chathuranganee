@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import Product from "../models/Product.js";
+import Product, { ON_MENU } from "../models/Product.js";
 import OptionGroup from "../models/OptionGroup.js";
 
 // Checks that the body is exactly { isAvailable: true|false }
@@ -15,7 +15,7 @@ const readIsAvailable = (req, res) => {
 // GET /api/staff/availability – everything the barista can switch on/off
 export const getAvailability = async (req, res) => {
   const [products, optionGroups] = await Promise.all([
-    Product.find().select("name category isAvailable").sort({ sortOrder: 1 }).lean(),
+    Product.find(ON_MENU).select("name category isAvailable").sort({ sortOrder: 1 }).lean(),
     OptionGroup.find().select("name required options._id options.name options.isAvailable").lean(),
   ]);
 
@@ -33,8 +33,8 @@ export const setProductAvailability = async (req, res) => {
   const isAvailable = readIsAvailable(req, res);
   if (isAvailable === null) return;
 
-  const product = await Product.findByIdAndUpdate(
-    id,
+  const product = await Product.findOneAndUpdate(
+    { _id: id, ...ON_MENU }, // removed products can't be switched on/off
     { isAvailable },
     { returnDocument: "after", runValidators: true }
   ).select("name category isAvailable");

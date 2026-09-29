@@ -1,10 +1,10 @@
-import Product from "../models/Product.js";
+import Product, { ON_MENU } from "../models/Product.js";
 import { CATEGORIES } from "../constants.js";
 import { isProductOrderable, getDefaultOptionId } from "../services/pricing.js";
 
 // GET /api/menu – full menu grouped by category, with availability
 export const getMenu = async (req, res) => {
-  const products = await Product.find()
+  const products = await Product.find(ON_MENU) // removed (archived) products never reach the kiosk
     .select("-createdAt -updatedAt -__v")
     .populate({ path: "optionGroups", select: "name required options" })
     .sort({ sortOrder: 1 })

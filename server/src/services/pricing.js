@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import Product from "../models/Product.js";
+import Product, { ON_MENU } from "../models/Product.js";
 import AppError from "../utils/AppError.js";
 
 // A product can be ordered only if:
@@ -22,6 +22,7 @@ export const getDefaultOptionId = (group) => {
   if (group.required && available.length > 0) return available[0]._id;
   return null;
 };
+
 const MAX_LINES = 20;
 const MAX_QUANTITY = 20;
 
@@ -53,7 +54,8 @@ export const buildOrderItems = async (items) => {
 
   // 2. Load every product in the cart (with its option groups) in ONE query
   const productIds = [...new Set(items.map((item) => String(item.productId)))];
-  const products = await Product.find({ _id: { $in: productIds } })
+  // Removed (archived) products are left out, so they count as "no longer on the menu"
+  const products = await Product.find({ _id: { $in: productIds }, ...ON_MENU })
     .populate("optionGroups")
     .lean();
   const productById = new Map(products.map((p) => [String(p._id), p]));
@@ -112,7 +114,7 @@ export const buildOrderItems = async (items) => {
     };
   });
 
-    const subtotal = orderItems.reduce((sum, line) => sum + line.lineTotal, 0);
+  const subtotal = orderItems.reduce((sum, line) => sum + line.lineTotal, 0);
   return { orderItems, subtotal };
 };
 
