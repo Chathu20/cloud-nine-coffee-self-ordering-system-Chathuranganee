@@ -36,6 +36,7 @@ const read = () => {
 
 // variant "header": inside a dark header bar
 // variant "floating": a small dark badge fixed to the top-right corner (pages without a header)
+// variant "pill": a light rounded pill with a calendar icon (admin panel)
 export default function LiveClock({ variant = "header", className = "" }) {
   const [clock, setClock] = useState(read);
 
@@ -47,6 +48,23 @@ export default function LiveClock({ variant = "header", className = "" }) {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  if (variant === "pill") {
+    return (
+      <div className={`flex items-center gap-3 rounded-full bg-foam px-5 py-2.5 text-espresso ${className}`}>
+        <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5 shrink-0 text-coffee" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <rect x="3.5" y="5" width="17" height="15" rx="2.5" />
+          <path d="M3.5 10h17M8 3v4M16 3v4" strokeLinecap="round" />
+        </svg>
+        <time dateTime={clock.iso} className="text-sm leading-tight">
+          <span className="font-bold tabular-nums">{clock.time}</span>
+          <span className="text-espresso/40"> · </span>
+          <span className="font-medium sm:hidden">{clock.date.short}</span>
+          <span className="hidden font-medium sm:inline">{clock.date.long}</span>
+        </time>
+      </div>
+    );
+  }
 
   const content = (
     <time dateTime={clock.iso} className="block text-right leading-tight">
