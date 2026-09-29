@@ -1,32 +1,48 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import api from "../api/client";
+import api, { TOKEN_KEYS } from "../api/client";
 
 const AuthContext = createContext(null);
-const TOKEN_KEY = "cn_token"; // the same key the API client reads
 
 // Where each role goes after logging in
 export const HOME_FOR_ROLE = { BARISTA: "/barista", ADMIN: "/admin" };
 
-export function AuthProvider({ children }) {
+// Used by the login page: signs in and saves the token in THAT role's own slot,
+// so logging in as admin never logs the barista out (and the other way round)
+export async function loginStaff(email, password) {
+  const { data } = await api.post("/auth/login", { email, password });
+  const key = TOKEN_KEYS[data.user.role];
+  if (!key) throw new Error("Unknown staff role");
+  localStorage.setItem(key, data.token);
+  return data.user;
+}
+
+// role = "ADMIN" or "BARISTA": which saved login this part of the app uses
+export function AuthProvider({ role, children }) {
+  const tokenKey = TOKEN_KEYS[role];
   const [user, setUser] = useState(null);
   // If a token is saved, we must ask the server who it belongs to before showing staff pages
-  const [checking, setChecking] = useState(() => Boolean(localStorage.getItem(TOKEN_KEY)));
+  const [checking, setChecking] = useState(() => Boolean(localStorage.getItem(tokenKey)));
 
+  // Only removes THIS screen's login – the other role stays logged in
   const logout = useCallback(() => {
-    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(tokenKey);
     setUser(null);
-  }, []);
+  }, [tokenKey]);
 
-  // On page load / refresh: turn a saved token back into a logged-in user
+  // On page load / refresh: turn the saved token back into a logged-in user
   useEffect(() => {
-    if (!localStorage.getItem(TOKEN_KEY)) return;
+    if (!localStorage.getItem(tokenKey)) return;
 
     api
       .get("/auth/me")
-      .then(({ data }) => setUser(data.user))
+      .then(({ data }) => {
+        // A token in the wrong slot (shouldn't happen) is treated as logged out
+        if (data.user.role === role) setUser(data.user);
+        else logout();
+      })
       .catch(() => logout()) // expired, invalid or deleted account → start again at the login page
       .finally(() => setChecking(false));
-  }, [logout]);
+  }, [tokenKey, role, logout]);
 
   // If ANY later staff request says "401 – not logged in" (e.g. the token expired), log out
   useEffect(() => {
@@ -41,14 +57,7 @@ export function AuthProvider({ children }) {
     return () => api.interceptors.response.eject(id);
   }, [logout]);
 
-  const login = useCallback(async (email, password) => {
-    const { data } = await api.post("/auth/login", { email, password });
-    localStorage.setItem(TOKEN_KEY, data.token);
-    setUser(data.user);
-    return data.user;
-  }, []);
-
-  const value = useMemo(() => ({ user, checking, login, logout }), [user, checking, login, logout]);
+  const value = useMemo(() => ({ user, checking, logout }), [user, checking, logout]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -1,16 +1,17 @@
 import { useState } from "react";
-import { Navigate, useLocation, useNavigate } from "react-router-dom";
-import { useAuth, HOME_FOR_ROLE } from "../../context/AuthContext";
+import { useLocation, useNavigate } from "react-router-dom";
+import { loginStaff, HOME_FOR_ROLE } from "../../context/AuthContext";
 
 // Pages each role may open (used to decide where to go after logging in)
-const ALLOWED_PATHS = { BARISTA: ["/barista"], ADMIN: ["/barista", "/admin"] };
+const ALLOWED_PATHS = { BARISTA: ["/barista"], ADMIN: ["/admin", "/admin/menu", "/admin/orders"] };
 
 // Go back to the page they originally wanted, if their role allows it; otherwise their home page
 const destinationFor = (user, from) =>
   from && ALLOWED_PATHS[user.role]?.includes(from) ? from : HOME_FOR_ROLE[user.role] ?? "/";
 
+// One login page for everyone. The account's role decides which screen's login is saved,
+// so signing in here as admin does NOT log out a barista in another tab (and vice versa).
 export default function StaffLoginPage() {
-  const { user, checking, login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from;
@@ -20,11 +21,6 @@ export default function StaffLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-
-  // Already logged in (e.g. opened /staff/login again) → go straight to their page
-  if (!checking && user) {
-    return <Navigate to={destinationFor(user, from)} replace />;
-  }
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -38,7 +34,7 @@ export default function StaffLoginPage() {
     setSubmitting(true);
     setError("");
     try {
-      const loggedIn = await login(email.trim(), password);
+      const loggedIn = await loginStaff(email.trim(), password);
       navigate(destinationFor(loggedIn, from), { replace: true });
     } catch (err) {
       const status = err.response?.status;
@@ -112,7 +108,7 @@ export default function StaffLoginPage() {
 
           <button
             type="submit"
-            disabled={submitting || checking}
+            disabled={submitting}
             className="w-full rounded-2xl bg-forest px-6 py-4 text-lg font-semibold text-white transition hover:bg-forest-dark disabled:cursor-not-allowed disabled:opacity-50"
           >
             {submitting ? "Signing in…" : "Sign in"}

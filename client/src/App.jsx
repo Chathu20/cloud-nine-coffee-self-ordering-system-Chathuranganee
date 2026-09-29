@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import CustomerLayout from "./layouts/CustomerLayout";
 import StaffLayout from "./layouts/StaffLayout";
 import { AuthProvider } from "./context/AuthContext";
@@ -15,11 +15,14 @@ import AdminDashboardPage from "./pages/staff/AdminDashboardPage";
 import AdminMenuPage from "./pages/staff/AdminMenuPage";
 import Placeholder from "./components/Placeholder";
 
-// Login state is only needed on staff pages, so the kiosk never checks for a staff token
-function StaffRoot() {
+// Each staff screen has its OWN login (admin and barista can both be logged in at once).
+// Only the pages inside it check for a token, so the kiosk never looks for one.
+function StaffArea({ role }) {
   return (
-    <AuthProvider>
-      <Outlet />
+    <AuthProvider role={role}>
+      <RequireRole roles={[role]}>
+        <StaffLayout />
+      </RequireRole>
     </AuthProvider>
   );
 }
@@ -40,32 +43,19 @@ export default function App() {
         {/* Customer's phone (from the QR code) */}
         <Route path="/track/:token" element={<TrackOrderPage />} />
 
-        {/* Staff */}
-        <Route element={<StaffRoot />}>
-          <Route path="/staff/login" element={<StaffLoginPage />} />
+        {/* Staff login (one page for both roles) */}
+        <Route path="/staff/login" element={<StaffLoginPage />} />
 
-          {/* Baristas AND admins */}
-          <Route
-            element={
-              <RequireRole roles={["BARISTA", "ADMIN"]}>
-                <StaffLayout />
-              </RequireRole>
-            }
-          >
-            <Route path="/barista" element={<BaristaBoardPage />} />
-          </Route>
+        {/* Barista screen – uses the barista's login */}
+        <Route element={<StaffArea role="BARISTA" />}>
+          <Route path="/barista" element={<BaristaBoardPage />} />
+        </Route>
 
-          {/* Admins only */}
-          <Route
-            element={
-              <RequireRole roles={["ADMIN"]}>
-                <StaffLayout />
-              </RequireRole>
-            }
-          >
-            <Route path="/admin" element={<AdminDashboardPage />} />
-            <Route path="/admin/menu" element={<AdminMenuPage />} />
-          </Route>
+        {/* Admin screen – uses the admin's login */}
+        <Route element={<StaffArea role="ADMIN" />}>
+          <Route path="/admin" element={<AdminDashboardPage />} />
+          <Route path="/admin/menu" element={<AdminMenuPage />} />
+          <Route path="/admin/orders" element={<BaristaBoardPage />} />
         </Route>
 
         <Route path="*" element={<Placeholder title="Page not found" />} />
