@@ -8,12 +8,29 @@ import { formatLKR } from "../../utils/format";
 const REFRESH_MS = 30000; // sales figures don't need to be second-by-second
 const TIME_ZONE = "Asia/Colombo";
 
+// Theme colours (defined once in index.css) – used by the big SVG charts
+const COLOR = {
+  rust: "var(--color-rust)",
+  peach: "var(--color-peach)",
+};
+
 const STATUS_LABEL = { NEW: "New", PREPARING: "Preparing", READY: "Ready", COMPLETED: "Completed" };
 const STATUS_STYLE = {
-  NEW: "bg-sienna/10 text-sienna",
+  NEW: "bg-rust/10 text-rust",
   PREPARING: "bg-forest/10 text-forest",
   READY: "bg-gold/25 text-espresso",
   COMPLETED: "bg-espresso/10 text-espresso/70",
+};
+
+// Circle colours for the top 3 items (from the design: caramel → sienna → deep roast)
+const RANK_STYLE = ["bg-peach", "bg-sienna", "bg-rust"];
+
+// Small line icons for the stat cards
+const ICON_PATHS = {
+  orders: "M7 3h10a1 1 0 0 1 1 1v17l-3-2-3 2-3-2-3 2V4a1 1 0 0 1 1-1zM9.5 8h5M9.5 12h5",
+  sales: "M3 7h18v10H3zM12 14.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM6.5 10v.01M17.5 14v.01",
+  tips: "M12 20s-7-4.35-7-10a4 4 0 0 1 7-2.65A4 4 0 0 1 19 10c0 5.65-7 10-7 10z",
+  cup: "M5 8h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5zM16 9h1.5a2.5 2.5 0 0 1 0 5H16M8 3v2M11 3v2",
 };
 
 // "2026-09-29" → "29 Sep"
@@ -35,80 +52,137 @@ const greeting = () => {
 };
 
 // A soft rounded card, like in the design
-function Card({ title, subtitle, action, children, className = "" }) {
+function Card({ title, subtitle, children, className = "" }) {
   return (
     <section className={`min-w-0 rounded-3xl bg-foam p-5 md:p-6 ${className}`}>
-      {(title || action) && (
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <div>
-            <h2 className="font-semibold text-espresso">{title}</h2>
-            {subtitle && <p className="text-sm text-espresso/50">{subtitle}</p>}
-          </div>
-          {action}
-        </div>
-      )}
+      <div className="mb-4">
+        <h2 className="font-semibold text-espresso">{title}</h2>
+        {subtitle && <p className="text-sm text-espresso/50">{subtitle}</p>}
+      </div>
       {children}
     </section>
   );
 }
 
-// One headline number with a tiny 14-day chart under it
-function StatTile({ label, value, note, chart }) {
+// The four stat cards each have their own background colour.
+// Light text on the dark cards, dark text on the light cards, so everything stays easy to read.
+const TILE_THEMES = {
+  green: {
+    card: "bg-forest text-cream",
+    muted: "text-cream/75",
+    faint: "text-cream/60",
+    badge: "bg-white/10 text-gold-light",
+    chart: "var(--color-gold-light)",
+  },
+  brown: {
+    card: "bg-coffee text-cream",
+    muted: "text-cream/75",
+    faint: "text-cream/60",
+    badge: "bg-white/10 text-gold-light",
+    chart: "var(--color-peach)",
+  },
+  cream: {
+    card: "bg-cream text-espresso ring-1 ring-latte/40",
+    muted: "text-espresso/65",
+    faint: "text-espresso/50",
+    badge: "bg-coffee/10 text-coffee",
+    chart: "var(--color-sienna)",
+  },
+  gold: {
+    card: "bg-gold text-espresso",
+    muted: "text-espresso/75",
+    faint: "text-espresso/65",
+    badge: "bg-white/30 text-espresso",
+    chart: "var(--color-espresso)",
+  },
+};
+
+// Coloured icon square at the top of each stat card
+function IconBadge({ name, className }) {
   return (
-    <div className="flex flex-col rounded-3xl bg-foam p-5">
-      <div className="flex items-baseline justify-between gap-2">
-        <p className="text-sm font-medium text-espresso/60">{label}</p>
-        <p className="text-xs text-espresso/40">14 days</p>
+    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${className}`} aria-hidden="true">
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d={ICON_PATHS[name]} />
+      </svg>
+    </span>
+  );
+}
+
+// One headline number with an icon and a tiny 14-day chart under it.
+// renderChart receives the card's chart colour, so the mini chart always matches the card.
+function StatTile({ label, value, note, icon, theme, renderChart }) {
+  const t = TILE_THEMES[theme];
+  return (
+    <div className={`flex flex-col rounded-3xl p-5 shadow-sm ${t.card}`}>
+      <div className="flex items-center gap-3">
+        <IconBadge name={icon} className={t.badge} />
+        <div className="min-w-0">
+          <p className={`text-sm font-medium ${t.muted}`}>{label}</p>
+          <p className={`text-xs ${t.faint}`}>Chart: last 14 days</p>
+        </div>
       </div>
-      <p className="mt-2 text-2xl font-bold text-espresso">{value}</p>
-      {note && <p className="text-xs text-espresso/45">{note}</p>}
-      <div className="mt-auto pt-3">{chart}</div>
+      <p className="mt-3 text-2xl font-bold">{value}</p>
+      {note && <p className={`text-xs ${t.faint}`}>{note}</p>}
+      <div className="mt-auto pt-3">{renderChart(t.chart)}</div>
     </div>
   );
 }
 
 // Dine-In vs Takeaway as one split bar. Numbers are always written, so colour is never the only clue.
-function OrderTypeTile({ dineIn, takeaway }) {
+function OrderTypeTile({ dineIn, takeaway, theme }) {
+  const t = TILE_THEMES[theme];
   const total = dineIn + takeaway;
   const dinePercent = total === 0 ? 50 : Math.round((dineIn / total) * 100);
 
   return (
-    <div className="rounded-3xl bg-foam p-5">
-      <p className="text-sm font-medium text-espresso/60">Dine-In vs Takeaway</p>
-      <div className="mt-4 flex h-3 gap-0.5 overflow-hidden rounded-full" aria-hidden="true">
-        {total === 0 ? (
-          <div className="w-full bg-espresso/10" />
-        ) : (
-          <>
-            {dineIn > 0 && <div className="bg-sienna" style={{ width: `${dinePercent}%` }} />}
-            {takeaway > 0 && <div className="flex-1 bg-honey" />}
-          </>
-        )}
+    <div className={`flex flex-col rounded-3xl p-5 shadow-sm ${t.card}`}>
+      <div className="flex items-center gap-3">
+        <IconBadge name="cup" className={t.badge} />
+        <div className="min-w-0">
+          <p className={`text-sm font-medium ${t.muted}`}>Dine-In vs Takeaway</p>
+          <p className={`text-xs ${t.faint}`}>Today's orders</p>
+        </div>
       </div>
-      <div className="mt-3 flex justify-between text-sm">
-        <p className="flex items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-full bg-sienna" aria-hidden="true" />
-          <span className="text-espresso/60">Dine-In</span>
-          <span className="font-bold text-espresso">{dineIn}</span>
-        </p>
-        <p className="flex items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-full bg-honey" aria-hidden="true" />
-          <span className="text-espresso/60">Takeaway</span>
-          <span className="font-bold text-espresso">{takeaway}</span>
-        </p>
+      <p className="mt-3 text-2xl font-bold">{total === 0 ? "—" : `${dinePercent}% dine-in`}</p>
+      <div className="mt-auto space-y-2 pt-3">
+        <div className="flex h-3 gap-0.5 overflow-hidden rounded-full" aria-hidden="true">
+          {total === 0 ? (
+            <div className="w-full bg-white/30" />
+          ) : (
+            <>
+              {dineIn > 0 && <div className="bg-espresso" style={{ width: `${dinePercent}%` }} />}
+              {takeaway > 0 && <div className="flex-1 bg-cream" />}
+            </>
+          )}
+        </div>
+        <div className="flex justify-between text-xs">
+          <p className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-full bg-espresso" aria-hidden="true" />
+            <span className={t.muted}>Dine-In</span>
+            <span className="font-bold">{dineIn}</span>
+          </p>
+          <p className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-full bg-cream ring-1 ring-espresso/30" aria-hidden="true" />
+            <span className={t.muted}>Takeaway</span>
+            <span className="font-bold">{takeaway}</span>
+          </p>
+        </div>
       </div>
-      <p className="mt-1 text-xs text-espresso/45">Today's orders</p>
     </div>
   );
 }
 
-// Product photo in a circle, or a cup if the product has no photo yet
-function ItemThumb({ src, name }) {
+// Product photo in a circle, or a coloured circle with the first letter (like the design)
+function ItemThumb({ src, name, rank }) {
   const [failed, setFailed] = useState(false);
   if (!src || failed) {
     return (
-      <div role="img" aria-label={name} className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-latte/40 text-xl">
-        ☕
+      <div
+        role="img"
+        aria-label={name}
+        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-lg font-bold text-white ${RANK_STYLE[rank] ?? "bg-latte"}`}
+      >
+        {name.charAt(0).toUpperCase()}
       </div>
     );
   }
@@ -143,6 +217,9 @@ export default function AdminDashboardPage() {
   }, [load]);
 
   const firstName = user.name.split(" ")[0];
+
+  // The busiest hour, written in the chart's subtitle (so it isn't shown by colour alone)
+  const peak = stats?.ordersByHour.reduce((best, h) => (h.orders > (best?.orders ?? 0) ? h : best), null);
 
   return (
     <main className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:px-8 md:py-8">
@@ -184,7 +261,36 @@ export default function AdminDashboardPage() {
         !error && <p className="py-20 text-center text-espresso/60">Loading dashboard…</p>
       ) : (
         <>
-          {/* Row 1: revenue chart + best sellers */}
+          {/* Row 1: today's numbers – green, brown, cream and gold cards */}
+          <section aria-label="Today's figures" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <StatTile
+              label="Orders today"
+              value={stats.todayOrders}
+              note={`${stats.totalOrders} paid in total`}
+              icon="orders"
+              theme="green"
+              renderChart={(color) => <MiniBars values={stats.dailySales.map((d) => d.orders)} color={color} />}
+            />
+            <StatTile
+              label="Sales today"
+              value={formatLKR(stats.todayRevenue)}
+              note="Items, before tips"
+              icon="sales"
+              theme="brown"
+              renderChart={(color) => <Sparkline values={stats.dailySales.map((d) => d.revenue)} color={color} />}
+            />
+            <StatTile
+              label="Tips today"
+              value={formatLKR(stats.todayTips)}
+              note="For the baristas"
+              icon="tips"
+              theme="cream"
+              renderChart={(color) => <MiniBars values={stats.dailySales.map((d) => d.tips)} color={color} />}
+            />
+            <OrderTypeTile dineIn={stats.dineInOrders} takeaway={stats.takeawayOrders} theme="gold" />
+          </section>
+
+          {/* Row 2: revenue chart + best sellers */}
           <div className="grid gap-6 lg:grid-cols-5">
             <Card
               className="lg:col-span-3"
@@ -194,6 +300,8 @@ export default function AdminDashboardPage() {
               <AreaChart
                 label="Revenue per day for the last 14 days"
                 formatValue={formatLKR}
+                color={COLOR.rust}
+                fill={COLOR.peach}
                 data={stats.dailySales.map((d) => ({
                   label: dayLabel(d.date),
                   value: d.revenue,
@@ -222,15 +330,12 @@ export default function AdminDashboardPage() {
                 <ol className="space-y-5">
                   {stats.topItems.map((item, index) => (
                     <li key={item.name} className="flex items-center gap-4">
-                      <ItemThumb src={item.image} name={item.name} />
+                      <ItemThumb src={item.image} name={item.name} rank={index} />
                       <div className="min-w-0 flex-1">
-                        <p className="truncate font-semibold text-espresso">
-                          <span className="text-espresso/40">{index + 1}. </span>
-                          {item.name}
-                        </p>
+                        <p className="truncate font-semibold text-espresso">{item.name}</p>
                         <p className="text-sm text-espresso/50">{item.quantity} sold</p>
                       </div>
-                      <p className="shrink-0 font-semibold text-espresso">{formatLKR(item.revenue)}</p>
+                      <p className="shrink-0 font-semibold text-coffee">{formatLKR(item.revenue)}</p>
                     </li>
                   ))}
                 </ol>
@@ -238,36 +343,23 @@ export default function AdminDashboardPage() {
             </Card>
           </div>
 
-          {/* Row 2: today's numbers */}
-          <section aria-label="Today's figures" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <StatTile
-              label="Orders today"
-              value={stats.todayOrders}
-              note={`${stats.totalOrders} paid in total`}
-              chart={<MiniBars values={stats.dailySales.map((d) => d.orders)} />}
-            />
-            <StatTile
-              label="Sales today"
-              value={formatLKR(stats.todayRevenue)}
-              note="Items, before tips"
-              chart={<Sparkline values={stats.dailySales.map((d) => d.revenue)} />}
-            />
-            <StatTile
-              label="Tips today"
-              value={formatLKR(stats.todayTips)}
-              note="For the baristas"
-              chart={<MiniBars values={stats.dailySales.map((d) => d.tips)} />}
-            />
-            <OrderTypeTile dineIn={stats.dineInOrders} takeaway={stats.takeawayOrders} />
-          </section>
-
           {/* Row 3: busiest hours + recent orders */}
           <div className="grid gap-6 lg:grid-cols-5">
-            <Card className="lg:col-span-2" title="Busiest hours" subtitle="Orders per hour · last 14 days">
+            <Card
+              className="lg:col-span-2"
+              title="Busiest hours"
+              subtitle={
+                peak
+                  ? `Busiest: ${hourLabel(peak.hour)} (${peak.orders} orders) · last 14 days`
+                  : "Orders per hour · last 14 days"
+              }
+            >
               <ColumnChart
                 height={300}
                 label="Orders per hour of the day over the last 14 days"
                 unit="orders"
+                color={COLOR.peach}
+                peakColor={COLOR.rust}
                 data={stats.ordersByHour.map((h) => ({ label: hourLabel(h.hour), value: h.orders }))}
               />
             </Card>

@@ -55,7 +55,7 @@ function Tooltip({ x, y, width, children }) {
 
 // ─── Area chart: one value per day ────────────────────────────────────────────
 // data: [{ label: "29 Sep", value: 12500, detail: "8 orders" }]
-export function AreaChart({ data, formatValue, height = 240, label }) {
+export function AreaChart({ data, formatValue, height = 240, label, color = SERIES, fill = color }) {
   const [ref, width] = useWidth();
   const [active, setActive] = useState(null);
 
@@ -87,8 +87,8 @@ export function AreaChart({ data, formatValue, height = 240, label }) {
         <svg width={width} height={height} role="img" aria-label={label} className="block touch-none">
           <defs>
             <linearGradient id="area-fill" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor={SERIES} stopOpacity="0.28" />
-              <stop offset="100%" stopColor={SERIES} stopOpacity="0.02" />
+              <stop offset="0%" stopColor={fill} stopOpacity="0.45" />
+              <stop offset="100%" stopColor={fill} stopOpacity="0.04" />
             </linearGradient>
           </defs>
 
@@ -111,12 +111,12 @@ export function AreaChart({ data, formatValue, height = 240, label }) {
           )}
 
           <path d={area} fill="url(#area-fill)" />
-          <path d={line} fill="none" stroke={SERIES} strokeWidth="2" strokeLinejoin="round" />
+          <path d={line} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" />
 
           {active !== null && (
             <g>
               <line x1={x(active)} x2={x(active)} y1={pad.top} y2={y(0)} stroke={AXIS_TEXT} strokeDasharray="3 3" />
-              <circle cx={x(active)} cy={y(data[active].value)} r="5" fill={SERIES} stroke="white" strokeWidth="2" />
+              <circle cx={x(active)} cy={y(data[active].value)} r="5" fill={color} stroke="white" strokeWidth="2" />
             </g>
           )}
 
@@ -147,7 +147,8 @@ export function AreaChart({ data, formatValue, height = 240, label }) {
 
 // ─── Column chart: orders per hour ───────────────────────────────────────────
 // data: [{ label: "9 AM", value: 12 }]
-export function ColumnChart({ data, unit, height = 240, label }) {
+// peakColor: the busiest column(s) are painted in this colour so they stand out
+export function ColumnChart({ data, unit, height = 240, label, color = SERIES, peakColor = color }) {
   const [ref, width] = useWidth();
   const [active, setActive] = useState(null);
 
@@ -190,7 +191,7 @@ export function ColumnChart({ data, unit, height = 240, label }) {
               <g key={d.label}>
                 <path
                   d={barPath(cx - barW / 2, y(d.value), barW, y(0))}
-                  fill={SERIES}
+                  fill={rawMax > 0 && d.value === rawMax ? peakColor : color}
                   opacity={active === null || isActive ? 1 : 0.45}
                 />
                 {(data.length - 1 - i) % labelEvery === 0 && (
@@ -229,7 +230,7 @@ export function ColumnChart({ data, unit, height = 240, label }) {
 
 // ─── Tiny charts inside the stat tiles (decoration under the big number) ────
 // They stretch to the tile's width (no text inside, so stretching is safe)
-export function Sparkline({ values, height = 36 }) {
+export function Sparkline({ values, height = 36, color = SERIES }) {
   const W = 100;
   const max = Math.max(...values, 1);
   const points = values.map((v, i) => [
@@ -238,12 +239,12 @@ export function Sparkline({ values, height = 36 }) {
   ]);
   return (
     <svg viewBox={`0 0 ${W} ${height}`} preserveAspectRatio="none" height={height} aria-hidden="true" className="block w-full">
-      <path d={smoothPath(points)} fill="none" stroke={SERIES} strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinecap="round" />
+      <path d={smoothPath(points)} fill="none" stroke={color} strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinecap="round" />
     </svg>
   );
 }
 
-export function MiniBars({ values, height = 36 }) {
+export function MiniBars({ values, height = 36, color = SERIES }) {
   const W = 100;
   const max = Math.max(...values, 1);
   const slot = W / values.length;
@@ -252,7 +253,7 @@ export function MiniBars({ values, height = 36 }) {
       {values.map((v, i) => {
         const h = Math.max((v / max) * height, v > 0 ? 3 : 1);
         return (
-          <rect key={i} x={i * slot + slot * 0.15} y={height - h} width={slot * 0.7} height={h} fill={SERIES} opacity={v > 0 ? 1 : 0.25} />
+          <rect key={i} x={i * slot + slot * 0.15} y={height - h} width={slot * 0.7} height={h} fill={color} opacity={v > 0 ? 1 : 0.25} />
         );
       })}
     </svg>

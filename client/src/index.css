@@ -59,6 +59,8 @@
   --color-parchment: #fbeee3;    /* sidebar background */
   --color-sienna: #a4552a;       /* chart colour 1 (checked for colour-blind readers) */
   --color-honey: #b8923f;        /* chart colour 2 (always shown with a label) */
+  --color-rust: #8b3a0f;         /* deep roast – revenue line, busiest hour */
+  --color-peach: #dca283;        /* soft caramel – chart fill, item circles */
 
   --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Marcellus", Georgia, serif; /* elegant headings (font-display) */
