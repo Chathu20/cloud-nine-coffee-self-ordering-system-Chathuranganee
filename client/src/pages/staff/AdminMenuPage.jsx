@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import api from "../../api/client";
 import ProductImage from "../../components/customer/ProductImage";
 import ProductFormDialog from "../../components/staff/ProductFormDialog";
 import { formatLKR } from "../../utils/format";
 
 const CATEGORY_ORDER = ["Hot Coffee", "Iced Coffee", "Other Drinks", "Food"];
+const ALL = "All";
 const CONFIRM_MS = 4000; // "Tap again to remove" stays this long
 
 export default function AdminMenuPage() {
@@ -17,6 +17,8 @@ export default function AdminMenuPage() {
   const [editing, setEditing] = useState(undefined); // undefined = closed, null = new item, object = editing
   const [confirmRemoveId, setConfirmRemoveId] = useState(null);
   const [busyId, setBusyId] = useState(null);
+  const [category, setCategory] = useState(ALL); // category filter chip
+  const [search, setSearch] = useState(""); // search box text
 
   const load = useCallback(async () => {
     try {
@@ -94,14 +96,28 @@ export default function AdminMenuPage() {
   const removed = products.filter((p) => p.isArchived);
   const groupName = (id) => optionGroups.find((g) => g.id === id)?.name;
 
+  // Search: case-insensitive, matches any part of the name ("lat" finds "Iced Caramel Latte")
+  const query = search.trim().toLowerCase();
+  const matchesSearch = (p) => p.name.toLowerCase().includes(query);
+  const matchesCategory = (p) => category === ALL || p.category === category;
+
+  const shownOnMenu = onMenu.filter((p) => matchesSearch(p) && matchesCategory(p));
+  const shownRemoved = removed.filter((p) => matchesSearch(p) && matchesCategory(p));
+  const isFiltering = query !== "" || category !== ALL;
+
+  // Numbers on the chips: how many on-menu items each category has for the current search
+  const countFor = (c) => onMenu.filter((p) => matchesSearch(p) && (c === ALL || p.category === c)).length;
+
+  const clearFilters = () => {
+    setSearch("");
+    setCategory(ALL);
+  };
+
   return (
     <main className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:px-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <Link to="/admin" className="text-sm font-medium text-forest hover:underline">
-            ← Dashboard
-          </Link>
-          <h1 className="font-display text-3xl uppercase tracking-wide text-coffee">Menu management</h1>
+          <h1 className="text-2xl font-semibold text-coffee md:text-3xl">Menu management</h1>
           <p className="text-sm text-espresso/60">
             {onMenu.length} items on the menu{removed.length > 0 && ` · ${removed.length} removed`}
           </p>
@@ -127,17 +143,75 @@ export default function AdminMenuPage() {
         </p>
       )}
 
+      {/* Search + category filters */}
+      <div className="space-y-3 rounded-3xl bg-foam p-4 md:p-5">
+        <div className="relative">
+          <svg viewBox="0 0 24 24" aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-coffee/60" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+            <circle cx="11" cy="11" r="6.5" />
+            <path d="m16 16 4.5 4.5" />
+          </svg>
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => e.key === "Escape" && setSearch("")}
+            placeholder="Search menu items by name…"
+            aria-label="Search menu items by name"
+            className="w-full rounded-full border-2 border-latte/50 bg-white py-3 pl-12 pr-4 text-espresso outline-none placeholder:text-espresso/40 focus:border-forest"
+          />
+        </div>
+
+        <div role="group" aria-label="Filter by category" className="flex flex-wrap gap-2">
+          {[ALL, ...CATEGORY_ORDER].map((c) => {
+            const active = category === c;
+            return (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setCategory(c)}
+                aria-pressed={active}
+                className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  active ? "bg-coffee text-white shadow-md" : "bg-white text-coffee ring-1 ring-latte/50 hover:bg-latte/20"
+                }`}
+              >
+                {c}
+                <span
+                  className={`rounded-full px-2 py-0.5 text-xs ${active ? "bg-white/20 text-white" : "bg-latte/25 text-coffee"}`}
+                >
+                  {countFor(c)}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {loading ? (
         <p className="py-20 text-center text-espresso/60">Loading menu…</p>
       ) : (
         <>
+          {isFiltering && (
+            <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-espresso/60">
+              <p role="status">
+                Showing {shownOnMenu.length} of {onMenu.length} items
+                {category !== ALL && ` in ${category}`}
+                {query && ` matching “${search.trim()}”`}
+              </p>
+              <button type="button" onClick={clearFilters} className="font-semibold text-forest hover:underline">
+                Clear filters
+              </button>
+            </div>
+          )}
+
           {/* Items on the menu, grouped by category */}
-          {CATEGORY_ORDER.map((category) => {
-            const items = onMenu.filter((p) => p.category === category);
+          {CATEGORY_ORDER.map((group) => {
+            const items = shownOnMenu.filter((p) => p.category === group);
             if (items.length === 0) return null;
             return (
-              <section key={category} className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-latte/30">
-                <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-espresso/50">{category}</h2>
+              <section key={group} className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-latte/30">
+                <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-espresso/50">
+                  {group} · {items.length}
+                </h2>
                 <ul className="divide-y divide-latte/30">
                   {items.map((product) => (
                     <li key={product.id} className="flex flex-wrap items-center gap-4 py-3">
@@ -198,15 +272,24 @@ export default function AdminMenuPage() {
             </p>
           )}
 
-          {/* Removed items can be brought back */}
-          {removed.length > 0 && (
+          {onMenu.length > 0 && shownOnMenu.length === 0 && (
+            <div className="rounded-3xl border-2 border-dashed border-latte/50 py-10 text-center">
+              <p className="text-espresso/60">No menu items match your search.</p>
+              <button type="button" onClick={clearFilters} className="mt-2 font-semibold text-forest hover:underline">
+                Clear filters
+              </button>
+            </div>
+          )}
+
+          {/* Removed items can be brought back (the same search and filter apply) */}
+          {shownRemoved.length > 0 && (
             <section className="rounded-3xl bg-latte/15 p-5">
               <h2 className="mb-1 text-lg font-bold text-coffee">Removed items</h2>
               <p className="mb-3 text-sm text-espresso/60">
                 Hidden from customers. Kept so past orders and reports stay correct.
               </p>
               <ul className="divide-y divide-latte/40">
-                {removed.map((product) => (
+                {shownRemoved.map((product) => (
                   <li key={product.id} className="flex items-center justify-between gap-4 py-3">
                     <span className="text-espresso/70">
                       {product.name} <span className="text-sm text-espresso/50">· {product.category}</span>
