@@ -32,10 +32,20 @@ function CupIcon({ height }) {
 const priceText = (option) =>
   !option.isAvailable ? "Sold out" : option.priceDelta > 0 ? `+${formatLKR(option.priceDelta)}` : "";
 
-export default function ItemCustomizer({ product, onClose, onAdded }) {
-  const { addItem } = useCart();
-  const [selections, setSelections] = useState({});
-  const [quantity, setQuantity] = useState(1);
+// Choices of an existing cart line, per option group (null = nothing chosen in that group)
+const selectionsFromLine = (product, line) =>
+  Object.fromEntries(
+    product.optionGroups.map((group) => [
+      group._id,
+      group.options.find((option) => line.optionIds.includes(option._id))?._id ?? null,
+    ])
+  );
+
+// editLine (optional): a cart line to change instead of adding a new item
+export default function ItemCustomizer({ product, onClose, onAdded, editLine = null }) {
+  const { addItem, replaceItem } = useCart();
+  const [selections, setSelections] = useState(() => (editLine ? selectionsFromLine(product, editLine) : {}));
+  const [quantity, setQuantity] = useState(editLine?.quantity ?? 1);
 
   // Close with the Escape key
   useEffect(() => {
@@ -65,7 +75,7 @@ export default function ItemCustomizer({ product, onClose, onAdded }) {
 
   const handleAdd = () => {
     if (!canAdd) return;
-    addItem({
+    const item = {
       productId: product._id,
       name: product.name,
       image: product.image,
@@ -74,8 +84,15 @@ export default function ItemCustomizer({ product, onClose, onAdded }) {
       options: chosen
         .filter(({ option }) => option)
         .map(({ group, option }) => ({ group: group.name, name: option.name, optionId: option._id })),
-    });
-    onAdded(`${quantity} × ${product.name} added to your order`);
+    };
+
+    if (editLine) {
+      replaceItem(editLine.key, item);
+      onAdded(`${product.name} updated`);
+    } else {
+      addItem(item);
+      onAdded(`${quantity} × ${product.name} added to your order`);
+    }
     onClose();
   };
 
@@ -234,7 +251,7 @@ export default function ItemCustomizer({ product, onClose, onAdded }) {
             >
               {canAdd ? (
                 <>
-                  Add to order
+                  {editLine ? "Save changes" : "Add to order"}
                   <span className="block text-sm font-bold">{formatLKR(unitPrice * quantity)}</span>
                 </>
               ) : missingRequired
