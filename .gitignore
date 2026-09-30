@@ -10,6 +10,9 @@ node_modules/
 dist/
 build/
 
+# uploaded menu photos (data, not code)
+server/uploads/
+
 # logs & OS files
 *.log
 .DS_Store
