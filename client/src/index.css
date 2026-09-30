@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+/* ---------- Welcome screen animations ---------- */
+
+/* Each title letter rises and fades in.
+   Only opacity + transform are animated: the graphics card handles these,
+   so the letters stay smooth even while the background video is playing. */
+@keyframes letter-in {
+  from { opacity: 0; transform: translateY(0.3em) scale(0.96); }
+  to   { opacity: 1; transform: none; }
+}
+.letter-in {
+  opacity: 0;
+  animation: letter-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  will-change: opacity, transform;
+}
+
+/* Text slides up into view */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: none; }
+}
+.fade-up {
+  opacity: 0;
+  animation: fade-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Every kiosk page fades in gently when it opens (e.g. welcome → menu) */
+@keyframes page-enter {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.page-enter {
+  animation: page-enter 0.35s ease-out;
+}
+
+/* The start button gently "breathes" */
+@keyframes soft-pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.05); }
+}
+.soft-pulse {
+  animation: soft-pulse 2s ease-in-out infinite;
+}
+
+/* Respect users who turn animations off in their device settings */
+@media (prefers-reduced-motion: reduce) {
+  .letter-in,
+  .fade-up,
+  .soft-pulse,
+  .page-enter {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+}
+
+/* Cloud Nine Coffee Bar – colour theme (defined once, used everywhere) */
+@theme {
+  --color-espresso: #2b1d14;     /* main text */
+  --color-coffee: #5b3a29;       /* brand brown – headings */
+  --color-latte: #c8a27c;        /* soft tan accents, borders */
+  --color-cream: #f5ede3;        /* page background */
+  --color-forest: #074a21;       /* dark green – main action buttons */
+  --color-forest-dark: #05361a;  /* button hover */
+  --color-gold: #c9a45c;         /* premium accent – borders, selected options */
+  --color-gold-light: #e6cf9a;   /* gold text on dark backgrounds */
+
+  /* Admin panel – soft café look */
+  --color-foam: #fdf6f0;         /* card background */
+  --color-parchment: #fbeee3;    /* sidebar background */
+  --color-sienna: #a4552a;       /* chart colour 1 (checked for colour-blind readers) */
+  --color-honey: #b8923f;        /* chart colour 2 (always shown with a label) */
+  --color-rust: #8b3a0f;         /* deep roast – revenue line, busiest hour */
+  --color-peach: #dca283;        /* soft caramel – chart fill, item circles */
+
+  --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Marcellus", Georgia, serif; /* elegant headings (font-display) */
+}
+
+body {
+  @apply bg-cream text-espresso antialiased;
+}
