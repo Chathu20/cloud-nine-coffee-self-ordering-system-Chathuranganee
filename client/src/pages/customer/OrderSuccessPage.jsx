@@ -11,6 +11,10 @@ const PUBLIC_URL = (import.meta.env.VITE_PUBLIC_URL || window.location.origin).r
 
 const ORDER_TYPE_LABEL = { DINE_IN: "Dine-In", TAKEAWAY: "Takeaway" };
 
+// The confirmation screen (with the QR code) goes back to the welcome screen by itself after this long,
+// so the next customer never sees someone else's order. Only this screen does this.
+const AUTO_RETURN_SECONDS = 60;
+
 export default function OrderSuccessPage() {
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get("session_id");
@@ -21,6 +25,7 @@ export default function OrderSuccessPage() {
   const [error, setError] = useState(null); // { message, canRetry }
   const [loading, setLoading] = useState(Boolean(sessionId));
   const requestedFor = useRef(null); // stops React StrictMode from confirming twice
+  const [secondsLeft, setSecondsLeft] = useState(AUTO_RETURN_SECONDS);
 
   const confirm = useCallback(async () => {
     setLoading(true);
@@ -49,6 +54,22 @@ export default function OrderSuccessPage() {
     requestedFor.current = sessionId;
     confirm();
   }, [sessionId, confirm]);
+
+  // Once the order is confirmed and the QR code is showing, count down 60 s, then go to the welcome screen.
+  // The countdown uses a fixed end time, so it stays accurate even if the browser is busy.
+  useEffect(() => {
+    if (!order) return;
+    const endsAt = Date.now() + AUTO_RETURN_SECONDS * 1000;
+
+    const tick = () => {
+      const left = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
+      setSecondsLeft(left);
+      if (left === 0) navigate("/", { replace: true }); // replace: Back can't return to this screen
+    };
+
+    const timer = setInterval(tick, 250);
+    return () => clearInterval(timer);
+  }, [order, navigate]);
 
   // No session id in the address → nobody came here from Stripe
   if (!sessionId) {
@@ -167,12 +188,25 @@ export default function OrderSuccessPage() {
 
         <button
           type="button"
-          onClick={() => navigate("/")}
+          onClick={() => navigate("/", { replace: true })}
           className="w-full rounded-2xl bg-coffee px-6 py-5 text-xl font-semibold text-cream transition hover:bg-espresso"
         >
           Done – start a new order
         </button>
-        <p className="text-center text-sm text-espresso/60">This screen goes back to the start automatically.</p>
+
+        {/* Countdown to the automatic return */}
+        <div className="space-y-2" aria-live="polite">
+          <p className="text-center text-sm text-espresso/60">
+            Returning to the start in <span className="font-semibold tabular-nums text-coffee">{secondsLeft}</span>{" "}
+            second{secondsLeft === 1 ? "" : "s"} – scan the QR code before then.
+          </p>
+          <div className="mx-auto h-1.5 max-w-sm overflow-hidden rounded-full bg-latte/30" aria-hidden="true">
+            <div
+              className="h-full rounded-full bg-forest transition-[width] duration-300 ease-linear"
+              style={{ width: `${(secondsLeft / AUTO_RETURN_SECONDS) * 100}%` }}
+            />
+          </div>
+        </div>
       </main>
     </div>
   );

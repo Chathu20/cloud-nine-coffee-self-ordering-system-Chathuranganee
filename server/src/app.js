@@ -6,6 +6,7 @@ import authRoutes from "./routes/authRoutes.js";
 import staffRoutes from "./routes/staffRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import { UPLOAD_DIR, UPLOAD_URL } from "./controllers/uploadController.js";
 
 const app = express();
 
@@ -31,6 +32,17 @@ app.use("/api/auth", authRoutes);
 app.use("/api/staff", staffRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/admin", adminRoutes);
+
+// Uploaded menu photos (public, read-only). "nosniff" stops browsers treating a file as anything but an image.
+app.use(
+  UPLOAD_URL,
+  express.static(UPLOAD_DIR, {
+    index: false,
+    dotfiles: "deny",
+    maxAge: "7d",
+    setHeaders: (res) => res.set("X-Content-Type-Options", "nosniff"),
+  })
+);
 // 404 for unknown API routes
 app.use((req, res) => {
   res.status(404).json({ message: `Route not found: ${req.originalUrl}` });

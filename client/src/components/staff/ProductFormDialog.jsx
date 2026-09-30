@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import api from "../../api/client";
 import ProductImage from "../customer/ProductImage";
 
@@ -7,6 +7,29 @@ const CATEGORIES = ["Hot Coffee", "Iced Coffee", "Other Drinks", "Food"];
 const MIN_PRICE = 200;
 const MAX_PRICE = 100000;
 const IMAGE_PATTERN = /^(\/[\w\-./]+|https?:\/\/\S+)$/i;
+
+// Photos chosen from the computer are shrunk in the browser before upload:
+// faster upload, smaller files, and the kiosk loads them quickly.
+const UPLOAD_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_PHOTO_WIDTH = 1000; // px – plenty for the menu cards
+const JPEG_QUALITY = 0.82;
+
+// Resize (keeping the shape) and convert to JPEG. A white background fills any transparent parts.
+const shrinkPhoto = async (file) => {
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, MAX_PHOTO_WIDTH / bitmap.width);
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  return new Promise((resolve, reject) =>
+    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("Could not read the photo"))), "image/jpeg", JPEG_QUALITY)
+  );
+};
 
 const EMPTY = { name: "", description: "", category: "Hot Coffee", basePrice: "", image: "", optionGroupIds: [] };
 
@@ -41,6 +64,8 @@ export default function ProductFormDialog({ product, optionGroups, onClose, onSa
   );
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInput = useRef(null);
 
   // Close with the Escape key
   useEffect(() => {
@@ -54,6 +79,32 @@ export default function ProductFormDialog({ product, optionGroups, onClose, onSa
     setError(""); // hide the old message once they start fixing it
   };
 
+  // "Upload from computer": shrink the photo, send it to the server, then use the returned link
+  const handleFileChosen = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // lets the same file be chosen again later
+    if (!file) return;
+
+    if (!UPLOAD_TYPES.includes(file.type)) {
+      setError("Please choose a JPG, PNG or WebP photo.");
+      return;
+    }
+
+    setUploading(true);
+    setError("");
+    try {
+      const photo = await shrinkPhoto(file);
+      const upload = new FormData();
+      upload.append("image", photo, "photo.jpg");
+      const { data } = await api.post("/admin/uploads", upload);
+      setForm((f) => ({ ...f, image: data.url }));
+    } catch (err) {
+      setError(err.response?.data?.message ?? "Couldn't upload the photo. Please try another image.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const toggleGroup = (id) =>
     setForm((f) => ({
       ...f,
@@ -62,7 +113,7 @@ export default function ProductFormDialog({ product, optionGroups, onClose, onSa
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (saving) return;
+    if (saving || uploading) return;
 
     const problem = validate(form);
     if (problem) {
@@ -168,15 +219,47 @@ export default function ProductFormDialog({ product, optionGroups, onClose, onSa
               </label>
             </div>
 
-            <label className="block space-y-1">
-              <span className="font-semibold text-espresso">Image</span>
+            {/* Image: paste a link OR upload a photo from the computer */}
+            <div className="space-y-2">
+              <label htmlFor="product-image" className="block font-semibold text-espresso">
+                Image
+              </label>
               <input
+                id="product-image"
                 value={form.image}
                 onChange={set("image")}
-                placeholder="/images/latte.jpg or https://…"
+                placeholder="Paste a link: /images/latte.jpg or https://…"
                 className={inputClass}
               />
-            </label>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-espresso/50">or</span>
+                <button
+                  type="button"
+                  onClick={() => fileInput.current?.click()}
+                  disabled={uploading || saving}
+                  className="rounded-xl border-2 border-forest px-4 py-2 text-sm font-semibold text-forest transition hover:bg-forest/5 disabled:opacity-50"
+                >
+                  {uploading ? "Uploading…" : "📁 Upload from computer"}
+                </button>
+                {form.image && !uploading && (
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, image: "" }))}
+                    className="rounded-xl px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50"
+                  >
+                    Remove image
+                  </button>
+                )}
+                <input
+                  ref={fileInput}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleFileChosen}
+                  className="hidden"
+                />
+              </div>
+              <p className="text-xs text-espresso/50">JPG, PNG or WebP. Photos are resized automatically.</p>
+            </div>
 
             <fieldset className="space-y-2">
               <legend className="font-semibold text-espresso">Customer options</legend>
@@ -240,7 +323,7 @@ export default function ProductFormDialog({ product, optionGroups, onClose, onSa
             </button>
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || uploading}
               className="rounded-xl bg-forest px-6 py-2.5 font-semibold text-white hover:bg-forest-dark disabled:opacity-50"
             >
               {saving ? "Saving…" : isEdit ? "Save changes" : "Add to menu"}

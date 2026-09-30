@@ -10,6 +10,7 @@ import {
   removeProduct,
   restoreProduct,
 } from "../controllers/adminProductController.js";
+import { acceptImage, uploadImage } from "../controllers/uploadController.js";
 
 const router = Router();
 
@@ -25,6 +26,9 @@ router.post("/products", announceMenuChange, createProduct);
 router.patch("/products/:id", announceMenuChange, updateProduct);
 router.delete("/products/:id", announceMenuChange, removeProduct);
 router.patch("/products/:id/restore", announceMenuChange, restoreProduct);
+
+// Photo upload for the product form (the returned URL is saved as the product's image)
+router.post("/uploads", acceptImage, uploadImage);
 
 // Choices for the product form (Size, Milk, Flavour…)
 router.get("/option-groups", listOptionGroups);
