@@ -49,6 +49,28 @@ export function CartProvider({ children }) {
     );
   }, []);
 
+  // Replace one line with an edited version (new options and/or quantity), keeping its place in the list.
+  // If the edit makes it identical to another line, the two are merged into one.
+  const replaceItem = useCallback((oldKey, item) => {
+    const optionIds = item.options.map((option) => option.optionId);
+    const key = lineKey(item.productId, optionIds);
+
+    setItems((current) => {
+      const position = current.findIndex((line) => line.key === oldKey);
+      const others = current.filter((line) => line.key !== oldKey);
+
+      if (others.some((line) => line.key === key)) {
+        return others.map((line) =>
+          line.key === key ? { ...line, quantity: clampQuantity(line.quantity + item.quantity) } : line
+        );
+      }
+
+      const edited = { ...item, key, optionIds, quantity: clampQuantity(item.quantity) };
+      others.splice(position < 0 ? others.length : position, 0, edited);
+      return others;
+    });
+  }, []);
+
   const removeItem = useCallback((key) => {
     setItems((current) => current.filter((line) => line.key !== key));
   }, []);
@@ -58,8 +80,8 @@ export function CartProvider({ children }) {
   const value = useMemo(() => {
     const itemCount = items.reduce((sum, line) => sum + line.quantity, 0);
     const subtotal = items.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
-    return { items, itemCount, subtotal, addItem, updateQuantity, removeItem, clearCart };
-  }, [items, addItem, updateQuantity, removeItem, clearCart]);
+    return { items, itemCount, subtotal, addItem, replaceItem, updateQuantity, removeItem, clearCart };
+  }, [items, addItem, replaceItem, updateQuantity, removeItem, clearCart]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
