@@ -40,23 +40,17 @@ Built with the **MERN stack** (MongoDB, Express, React, Node.js) and **Stripe Ch
 |---|---|
 | ![Welcome screen](docs/screenshots/welcome.png) | ![Menu](docs/screenshots/menu.png) |
 
-| Customise a drink |
-|---|
-| ![Customise a drink](docs/screenshots/customise.png) | 
- 
-| Checkout |
-|---|
-| ![Checkout](docs/screenshots/checkout.png) ![Checkout](docs\screenshots\checkout2.png) |
+| Customise a drink | Checkout |
+|---|---|
+| ![Customise a drink](docs/screenshots/customise.png) | ![Checkout](docs/screenshots/checkout.png) |
 
-| Stripe test payment |
-|---|
-| ![Stripe payment](docs/screenshots/stripe-payment.png) |
+| Checkout – editing the order | Stripe test payment |
+|---|---|
+| ![Checkout editing](docs/screenshots/checkout2.png) | ![Stripe payment](docs/screenshots/stripe-payment.png) |
 
-| Order confirmation with QR code |
-|---|
-| ![Order confirmation](docs/screenshots/order-confirmation.png) |
-|![Order confirmation](docs\screenshots\QRorder-confirmation.png) |
-
+| Order confirmation | QR code for order tracking |
+|---|---|
+| ![Order confirmation](docs/screenshots/order-confirmation.png) | ![QR code](docs/screenshots/QRorder-confirmation.png) |
 
 | Order tracking on a phone | |
 |---|---|
@@ -76,12 +70,11 @@ Built with the **MERN stack** (MongoDB, Express, React, Node.js) and **Stripe Ch
 
 | Sales dashboard | Menu management |
 |---|---|
-| ![Admin dashboard](docs/screenshots/admin-dashboard.png) | ![Admin menu](docs/screenshots/admin-menu.png)  |
+| ![Admin dashboard](docs/screenshots/admin-dashboard.png) | ![Admin menu](docs/screenshots/admin-menu.png) |
 
-| Add / edit menu item (image link or upload) | |
+| Add a new menu item | Edit a menu item (image link or upload) |
 |---|---|
-| ![Product form](docs/screenshots/admin-product-formadd.png) | ![Product form](docs/screenshots/admin-product-form.png) |
-
+| ![Add product](docs/screenshots/admin-product-formadd.png) | ![Edit product](docs/screenshots/admin-product-form.png) |
 ### Development workflow
 
 | Pull requests into `develop` |
