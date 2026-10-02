@@ -4,6 +4,7 @@ import stripe, { STRIPE_CURRENCY } from "../config/stripe.js";
 import { ORDER_TYPES, ORDER_STATUS, TIP_PERCENTAGES } from "../constants.js";
 import { buildOrderItems, calculateTip } from "../services/pricing.js";
 import AppError from "../utils/AppError.js";
+import { notifyOrderChanged, openTrackingStream } from "../services/orderEvents.js";
 
 // Stripe expects the smallest currency unit: LKR 850 → 85000 (cents)
 const toStripeAmount = (rupees) => Math.round(rupees * 100);
@@ -137,6 +138,7 @@ export const confirmPayment = async (req, res) => {
       claimed.statusHistory.push({ status: ORDER_STATUS.NEW });
       await claimed.save();
       order = claimed;
+      notifyOrderChanged(claimed.trackingToken); // the new order appears on the barista board
     } else {
       order = await Order.findById(order._id); // another request finalised it first
     }
@@ -179,4 +181,19 @@ export const trackOrder = async (req, res) => {
 
   res.set("Cache-Control", "no-store");
   res.json({ order: toTrackingView(order) });
+};
+// GET /api/orders/track/:token/events – live "your order changed" messages for the tracking page
+export const streamTrackingEvents = async (req, res) => {
+  const { token } = req.params;
+  if (!UUID_PATTERN.test(token)) {
+    throw new AppError("Invalid tracking link");
+  }
+
+  // Only open a live connection for a real, paid order
+  const exists = await Order.exists({ trackingToken: token, paymentStatus: "PAID" });
+  if (!exists) {
+    throw new AppError("Order not found", 404);
+  }
+
+  openTrackingStream(req, res, token);
 };

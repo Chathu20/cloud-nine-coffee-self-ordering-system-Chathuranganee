@@ -93,12 +93,12 @@ Built with the **MERN stack** (MongoDB, Express, React, Node.js) and **Stripe Ch
 - **Checkout** in four cards: order type (Dine-in / Takeaway), tip (0 / 5 / 10 / 15 %), an editable "Your order" list (change options or quantity without going back) and an order summary.
 - **Stripe Checkout (test mode)** for payment.
 - **Order confirmation** with an order number (e.g. `CN-0042`) and a **QR code**. The screen returns to the welcome screen automatically after **60 seconds** with a visible countdown.
-- **Order tracking page** on the customer's phone (from the QR code) that refreshes every 5 seconds: New → Preparing → Ready → Completed.
+- **Live order tracking page** on the customer's phone (from the QR code): New → Preparing → Ready → Completed. It updates the moment the barista moves the order on.
 - **Live menu updates**: when a barista marks an item sold out, or an admin changes the menu, every kiosk updates within about a second (no reload).
 
 ### Barista
 - Separate staff login (JWT).
-- **Order board** with columns for New, Preparing and Ready; refreshes every 5 seconds.
+- **Live order board** with columns for New, Preparing and Ready; new paid orders and status changes appear instantly.
 - One-tap status changes. Two baristas can't move the same order twice (conflicts return `409`).
 - **Availability panel**: mark a product or a single option (e.g. Oat Milk) as sold out / available.
 
@@ -125,7 +125,7 @@ Built with the **MERN stack** (MongoDB, Express, React, Node.js) and **Stripe Ch
 | Payments | **Stripe Checkout** (test mode) | Secure hosted payment page; card details never touch our server |
 | Auth | **JWT** + **bcryptjs** | Stateless staff login; passwords stored as hashes |
 | Uploads | **multer** | Receives product photos in memory so they can be checked first |
-| Live updates | **Server-Sent Events** (SSE) | One-way server → kiosk messages without extra libraries |
+| Live updates | **Server-Sent Events** (SSE) | One-way server → browser messages (menu, order board, tracking) without extra libraries |
 | Linting | **oxlint** | Fast lint checks for the client |
 
 ---
@@ -314,8 +314,10 @@ A Cloudflare quick tunnel gives the local app a temporary public `https://` addr
    ```
    VITE_PUBLIC_URL=https://example-words-here.trycloudflare.com
    ```
-5. Restart the client (`Ctrl + C`, then `npm run dev`). Vite only reads `.env` when it starts.
+5. Restart the client with the **fast demo build** (`Ctrl + C`, then `npm run demo`). It reads `.env`, builds an optimised version and serves it on the same port 5173.
 6. Place an order and scan the QR code with the phone.
+
+Why `npm run demo` instead of `npm run dev`: the dev server sends every source file separately and unminified (about 50 files), and through a tunnel each file costs a round trip, so the phone needed about 11 seconds to open the tracking page. The demo build bundles and minifies the code, and each screen is loaded only when opened (code splitting), so the phone downloads about 7 small files and the tracking page opens in about 1.5 seconds. Use `npm run dev` while coding (instant reload on save), and `npm run demo` for testing on a phone and for demos. Run `npm run demo` again after changing code or `VITE_PUBLIC_URL`.
 
 Why this works: the tunnel forwards requests to Vite on port 5173, and Vite forwards `/api` requests to the Express server on port 5000. So one address serves both the page and the API. `vite.config.js` allows `.trycloudflare.com` hosts.
 
@@ -359,6 +361,7 @@ All routes start with `/api`.
 | POST | `/orders` | Create an order and a Stripe Checkout session |
 | GET | `/orders/confirm?session_id=...` | Confirm payment after Stripe redirects back |
 | GET | `/orders/track/:token` | Order status for the tracking page |
+| GET | `/orders/track/:token/events` | Live updates for one order's tracking page (Server-Sent Events) |
 
 ### Auth
 
@@ -371,6 +374,7 @@ All routes start with `/api`.
 
 | Method | Route | Description |
 |---|---|---|
+| GET | `/staff/orders/events` | Live "orders changed" signal for the board (Server-Sent Events, carries no order data) |
 | GET | `/staff/orders` | Active orders for the board |
 | PATCH | `/staff/orders/:id/status` | Move an order to its next status |
 | GET | `/staff/availability` | Products and options with availability |
@@ -409,6 +413,12 @@ All routes start with `/api`.
 **Status changes.** The server only allows New → Preparing → Ready → Completed. The update checks the current status (`{ _id, status: from }`), so if two baristas tap at the same time only one wins; the other gets `409 Conflict`.
 
 **Live menu.** Kiosks keep a Server-Sent Events connection to `/api/menu/events`. After any successful menu change, the `announceMenuChange` middleware sends a `menu-changed` event (changes within 150 ms are grouped into one), and the kiosk reloads the menu. A 30-second refresh is kept as a safety net.
+
+**Live orders.** The barista board and the tracking page use the same idea. When a payment is confirmed or a barista changes a status, the server calls `notifyOrderChanged`:
+- every open board gets an `orders-changed` event (`/api/staff/orders/events`) and reloads its orders through the protected API;
+- only the phones tracking **that** order get an `order-updated` event (`/api/orders/track/:token/events`) and reload their status.
+
+The events carry no order data, so the board stream needs no login (the browser's `EventSource` can't send the token) without exposing anything; the actual orders are still loaded through the login-protected route. The server sends a `ready` message straight after connecting and a `ping` every 15 seconds, and the stream is marked `Cache-Control: no-cache, no-transform` so tunnels such as Cloudflare pass each message on immediately instead of holding it back. If the page still doesn't receive these signals in time (for example, a network that buffers the stream), it automatically switches to checking every 3 seconds, so the customer never has to refresh. While live, a 30-second refresh is kept as a safety net.
 
 **Soft delete.** Archiving sets `isArchived: true` instead of deleting, so old orders still show the item name and the admin can restore it.
 
@@ -454,7 +464,6 @@ git push -u origin feature/my-change
 
 - Payments use **Stripe test mode** only; no real payments.
 - Payment is confirmed when the customer returns from Stripe (no Stripe webhook). If the customer closes the browser during payment, the order stays `PENDING_PAYMENT`.
-- The barista board and the tracking page refresh every 5 seconds (polling), not instantly.
 - Uploaded photos are stored on the server's disk (`server/uploads/`), which suits a single server but not cloud hosting without a file store.
 - Cloudflare quick tunnels are for testing and demos; the address changes every time.
 - The app is not deployed; it runs locally.
