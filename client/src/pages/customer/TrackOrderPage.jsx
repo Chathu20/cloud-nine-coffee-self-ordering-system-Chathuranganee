@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import api from "../../api/client";
+import useServerEvents from "../../hooks/useServerEvents";
 
-const REFRESH_MS = 5000; // same 5-second refresh as the kiosk menu
+// Live: the server tells this page the moment the barista moves the order on.
+// If the live connection isn't working (e.g. a network holds messages back),
+// the page checks every 3 seconds instead – so it never needs a manual refresh.
+const SAFETY_REFRESH_MS = 30_000; // while live: just a safety net
+const FALLBACK_REFRESH_MS = 3_000; // while live updates aren't getting through
 
 // The four stages the customer sees, in order
 const STAGES = [
@@ -39,13 +44,18 @@ export default function TrackOrderPage() {
   }, [token]);
 
   const finished = order?.status === "COMPLETED";
+  const watching = !fatalError && !finished; // stop once the order is collected or the link is bad
 
-  // Load now, then every 5 seconds – stop once the order is collected or the link is bad
+  // Live updates for THIS order only
+  const live = useServerEvents(`/api/orders/track/${encodeURIComponent(token)}/events`, "order-updated", load, watching);
+
+  // Load now, keep checking (slowly while live, quickly if not), and straight away
+  // when the customer comes back to the tab
   useEffect(() => {
-    if (fatalError || finished) return;
+    if (!watching) return;
 
     load();
-    const timer = setInterval(load, REFRESH_MS);
+    const timer = setInterval(load, live ? SAFETY_REFRESH_MS : FALLBACK_REFRESH_MS);
     // Phones pause background tabs – refresh straight away when the customer comes back
     const onVisible = () => document.visibilityState === "visible" && load();
     document.addEventListener("visibilitychange", onVisible);
@@ -54,7 +64,7 @@ export default function TrackOrderPage() {
       clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [load, fatalError, finished]);
+  }, [load, watching, live]);
 
   if (fatalError) {
     return (
@@ -160,8 +170,10 @@ export default function TrackOrderPage() {
         {finished
           ? "This order is complete."
           : offline
-            ? "⚠ Connection lost – showing the last update. Retrying…"
-            : "This page updates automatically every few seconds."}
+            ? "⚠ Connection lost – showing the last update. Reconnecting…"
+            : live
+              ? "● Live – this page updates the moment your order moves on."
+              : "This page updates automatically every few seconds."}
       </p>
     </Shell>
   );

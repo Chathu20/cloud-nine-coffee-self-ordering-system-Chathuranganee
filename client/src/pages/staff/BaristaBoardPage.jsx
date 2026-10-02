@@ -2,8 +2,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import api from "../../api/client";
 import OrderCard from "../../components/staff/OrderCard";
 import AvailabilityPanel from "../../components/staff/AvailabilityPanel";
+import useServerEvents from "../../hooks/useServerEvents";
 
-const REFRESH_MS = 5000; // new orders appear within 5 seconds
+// Live: the server tells the board the moment an order is paid or changes status.
+// If the live connection isn't working, the board checks every 3 seconds instead.
+const EVENTS_URL = "/api/staff/orders/events";
+const SAFETY_REFRESH_MS = 30_000; // while live: just a safety net
+const FALLBACK_REFRESH_MS = 3_000; // while live updates aren't getting through
 const NEW_HIGHLIGHT_MS = 15000; // how long a just-arrived order glows
 
 const COLUMNS = [
@@ -30,6 +35,7 @@ export default function BaristaBoardPage() {
   const [newIds, setNewIds] = useState(() => new Set());
 
   const knownIds = useRef(null); // orders we've already seen (null = first load)
+  const tabRef = useRef(tab); // lets the live handler know which tab is open
 
   const loadActive = useCallback(async () => {
     try {
@@ -66,19 +72,29 @@ export default function BaristaBoardPage() {
     }
   }, []);
 
-  // Refresh the board every 5 seconds, and straight away when the tab is focused again
+  // A live message arrived → reload the board (and the completed list if it's open)
+  const onOrdersChanged = useCallback(() => {
+    loadActive();
+    if (tabRef.current === "completed") loadCompleted();
+  }, [loadActive, loadCompleted]);
+
+  const live = useServerEvents(EVENTS_URL, "orders-changed", onOrdersChanged);
+
+  // Load now, keep checking (slowly while live, quickly if not), and straight away
+  // when the tab is focused again
   useEffect(() => {
     loadActive();
-    const timer = setInterval(loadActive, REFRESH_MS);
+    const timer = setInterval(loadActive, live ? SAFETY_REFRESH_MS : FALLBACK_REFRESH_MS);
     const onVisible = () => document.visibilityState === "visible" && loadActive();
     document.addEventListener("visibilitychange", onVisible);
     return () => {
       clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [loadActive]);
+  }, [loadActive, live]);
 
   useEffect(() => {
+    tabRef.current = tab;
     if (tab === "completed") loadCompleted();
   }, [tab, loadCompleted]);
 
@@ -138,8 +154,12 @@ export default function BaristaBoardPage() {
           ))}
         </nav>
 
-        <p className={`text-sm ${offline ? "font-semibold text-red-700" : "text-espresso/50"}`}>
-          {offline ? "⚠ Connection lost – retrying…" : "● Live – updates every 5 seconds"}
+        <p className={`text-sm ${offline ? "font-semibold text-red-700" : live ? "text-forest" : "text-espresso/50"}`}>
+          {offline
+            ? "⚠ Connection lost – retrying…"
+            : live
+              ? "● Live – new orders appear instantly"
+              : "Updating every few seconds…"}
         </p>
       </div>
 

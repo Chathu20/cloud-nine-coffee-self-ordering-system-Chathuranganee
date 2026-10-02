@@ -7,8 +7,14 @@ import {
   setOptionAvailability,
 } from "../controllers/availabilityController.js";
 import { getOrders, advanceOrderStatus } from "../controllers/staffOrderController.js";
+import { streamBoardEvents } from "../services/orderEvents.js";
 
 const router = Router();
+
+// Live "orders changed" signal for the order board. It sits BEFORE the login check because
+// the browser's EventSource cannot send the login token. That is safe: the message carries
+// no order data at all – the board then reloads the orders through the protected route below.
+router.get("/orders/events", streamBoardEvents);
 
 // Every route in this file requires a logged-in barista or admin
 router.use(protect, authorize("BARISTA", "ADMIN"));
