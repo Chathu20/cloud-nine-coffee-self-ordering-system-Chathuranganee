@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Order from "../models/Order.js";
 import { ORDER_STATUS, NEXT_STATUS } from "../constants.js";
 import AppError from "../utils/AppError.js";
+import { notifyOrderChanged } from "../services/orderEvents.js";
 
 const ACTIVE_STATUSES = [ORDER_STATUS.NEW, ORDER_STATUS.PREPARING, ORDER_STATUS.READY];
 const COMPLETED_LIMIT = 20;
@@ -70,5 +71,6 @@ export const advanceOrderStatus = async (req, res) => {
     throw new AppError(`Order ${current.orderNumber} is already ${current.status}`, 409);
   }
 
+  notifyOrderChanged(order.trackingToken); // other boards + this customer's phone update straight away
   res.json({ order: toBaristaOrder(order) });
 };
